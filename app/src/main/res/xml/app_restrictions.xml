@@ -66,4 +66,49 @@
         android:restrictionType="integer"
         android:title="@string/main_activity_settings_start_on_boot_delay" />
 
+    <!-- Keyboard shortcut chord assignments; each value is a chord key: none, home, esc, end,
+         ctrl_esc, ctrl_shift_esc, ctrl_alt_del, ctrl_alt_home, ctrl_alt_end, ctrl_alt_backspace,
+         ctrl_alt_pageup, ctrl_alt_pagedown, alt_home, alt_left -->
+    <restriction
+        android:defaultValue="ctrl_shift_esc"
+        android:key="chordRecents"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_recents" />
+
+    <restriction
+        android:defaultValue="home"
+        android:key="chordHome"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_home" />
+
+    <restriction
+        android:defaultValue="esc"
+        android:key="chordBack"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_back" />
+
+    <restriction
+        android:defaultValue="end"
+        android:key="chordPower"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_power" />
+
+    <restriction
+        android:defaultValue="ctrl_alt_pageup"
+        android:key="chordVolumeUp"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_volume_up" />
+
+    <restriction
+        android:defaultValue="ctrl_alt_pagedown"
+        android:key="chordVolumeDown"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_volume_down" />
+
+    <restriction
+        android:defaultValue="ctrl_alt_del"
+        android:key="chordRotate"
+        android:restrictionType="string"
+        android:title="@string/main_activity_settings_chord_rotate" />
+
 </restrictions>

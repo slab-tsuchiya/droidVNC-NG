@@ -89,6 +89,38 @@ class Defaults {
         private set
 
     /*
+       Keyboard shortcut chord assignments (one KeyShortcut.ChordKey per action). Defaults
+       reproduce the historical hard-coded shortcuts.
+     */
+    @EncodeDefault
+    var chordRecents = "ctrl_shift_esc"
+        private set
+
+    @EncodeDefault
+    var chordHome = "home"
+        private set
+
+    @EncodeDefault
+    var chordBack = "esc"
+        private set
+
+    @EncodeDefault
+    var chordPower = "end"
+        private set
+
+    @EncodeDefault
+    var chordVolumeUp = "ctrl_alt_pageup"
+        private set
+
+    @EncodeDefault
+    var chordVolumeDown = "ctrl_alt_pagedown"
+        private set
+
+    @EncodeDefault
+    var chordRotate = "ctrl_alt_del"
+        private set
+
+    /*
        NB if adding fields here, don't forget to add their copying in the constructor as well!
      */
 
@@ -129,6 +161,13 @@ class Defaults {
             this.password = appConfig.getString("password", this.password) ?: this.password
             this.startOnBoot = appConfig.getBoolean("startOnBoot", this.startOnBoot)
             this.startOnBootDelay = appConfig.getInt("startOnBootDelay", this.startOnBootDelay)
+            this.chordRecents = appConfig.getString("chordRecents", this.chordRecents) ?: this.chordRecents
+            this.chordHome = appConfig.getString("chordHome", this.chordHome) ?: this.chordHome
+            this.chordBack = appConfig.getString("chordBack", this.chordBack) ?: this.chordBack
+            this.chordPower = appConfig.getString("chordPower", this.chordPower) ?: this.chordPower
+            this.chordVolumeUp = appConfig.getString("chordVolumeUp", this.chordVolumeUp) ?: this.chordVolumeUp
+            this.chordVolumeDown = appConfig.getString("chordVolumeDown", this.chordVolumeDown) ?: this.chordVolumeDown
+            this.chordRotate = appConfig.getString("chordRotate", this.chordRotate) ?: this.chordRotate
 
             val scalingStr = appConfig.getString("scaling", "0.0")
             try {
@@ -171,6 +210,13 @@ class Defaults {
                 this.accessKey = readDefault.accessKey
             this.startOnBoot = readDefault.startOnBoot
             this.startOnBootDelay = readDefault.startOnBootDelay
+            this.chordRecents = readDefault.chordRecents
+            this.chordHome = readDefault.chordHome
+            this.chordBack = readDefault.chordBack
+            this.chordPower = readDefault.chordPower
+            this.chordVolumeUp = readDefault.chordVolumeUp
+            this.chordVolumeDown = readDefault.chordVolumeDown
+            this.chordRotate = readDefault.chordRotate
             // add here!
         } catch (e: Exception) {
             Log.w(TAG, "${e.message}")

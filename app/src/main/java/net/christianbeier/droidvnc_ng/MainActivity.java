@@ -117,6 +117,13 @@ public class MainActivity extends AppCompatActivity {
     private final ConcurrentHashMap<Long, String> mNetworkInterfaces = new ConcurrentHashMap<>();
     private Spinner mNetworkInterfaceSpinner;
     private ArrayAdapter<String> mNetworkInterfaceAdapter;
+    // keyboard shortcut chord spinners; order matches KeyShortcut.buildBindings()
+    private Spinner[] mChordSpinners;
+    private String[] mChordSelected;                                   // ChordKey.key per action
+    private java.util.List<java.util.List<KeyShortcut.ChordKey>> mChordShown; // position->ChordKey per spinner
+    private String[] mChordLabels;
+    private KeyShortcut.ChordKey[] mAllChords;
+    private boolean mChordSpinnerUpdating;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,6 +198,9 @@ public class MainActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
         updateNetworkInterfaceSpinner();
+
+        // Wire up per-action keyboard shortcut chord spinners (mutually exclusive)
+        setupChordSpinners(prefs);
 
         Button reverseVNC = findViewById(R.id.reverse_vnc);
         reverseVNC.setOnClickListener(view -> {
@@ -908,6 +918,114 @@ public class MainActivity extends AppCompatActivity {
             findViewById(R.id.permission_row_start_on_boot).setVisibility(View.GONE);
         }
 
+    }
+
+    /**
+     * Wires the keyboard-shortcut chord spinners (one per {@link KeyShortcut.ShortcutAction}). Each
+     * offers the fixed candidate chords from {@link KeyShortcut.ChordKey}, but a chord already
+     * assigned to one action is hidden from the others (mutual exclusion; "None" always available).
+     * Selections persist to prefs and live-update the running InputService.
+     */
+    private void setupChordSpinners(final SharedPreferences prefs) {
+        // order must match KeyShortcut.buildBindings(): recents, home, back, power, volumeUp, volumeDown, rotate
+        final int[] ids = {
+                R.id.settings_chord_recents, R.id.settings_chord_home, R.id.settings_chord_back,
+                R.id.settings_chord_power, R.id.settings_chord_volume_up,
+                R.id.settings_chord_volume_down, R.id.settings_chord_rotate
+        };
+        final String[] prefKeys = {
+                Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS,
+                Constants.PREFS_KEY_SETTINGS_CHORD_HOME,
+                Constants.PREFS_KEY_SETTINGS_CHORD_BACK,
+                Constants.PREFS_KEY_SETTINGS_CHORD_POWER,
+                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP,
+                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN,
+                Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE
+        };
+        final String[] defaults = {
+                mDefaults.getChordRecents(), mDefaults.getChordHome(), mDefaults.getChordBack(),
+                mDefaults.getChordPower(), mDefaults.getChordVolumeUp(),
+                mDefaults.getChordVolumeDown(), mDefaults.getChordRotate()
+        };
+        final int n = ids.length;
+        mAllChords = KeyShortcut.ChordKey.values();
+        mChordLabels = getResources().getStringArray(R.array.chord_labels);
+        mChordSpinners = new Spinner[n];
+        mChordSelected = new String[n];
+        mChordShown = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            mChordSpinners[i] = findViewById(ids[i]);
+            mChordSelected[i] = KeyShortcut.ChordKey.fromKey(prefs.getString(prefKeys[i], defaults[i])).key;
+            mChordShown.add(new java.util.ArrayList<>());
+        }
+        for (int i = 0; i < n; i++) {
+            final int idx = i;
+            final String prefKey = prefKeys[i];
+            mChordSpinners[i].setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    if (mChordSpinnerUpdating) {
+                        return;
+                    }
+                    KeyShortcut.ChordKey picked = mChordShown.get(idx).get(position);
+                    if (picked.key.equals(mChordSelected[idx])) {
+                        return; // no actual change (e.g. a re-layout callback)
+                    }
+                    mChordSelected[idx] = picked.key;
+                    prefs.edit().putString(prefKey, picked.key).apply();
+                    // live-update the running input service, then refresh the others for exclusivity
+                    InputService.sShortcutBindings = KeyShortcut.buildBindings(
+                            mChordSelected[0], mChordSelected[1], mChordSelected[2], mChordSelected[3],
+                            mChordSelected[4], mChordSelected[5], mChordSelected[6]);
+                    for (int j = 0; j < mChordSpinners.length; j++) {
+                        if (j != idx) {
+                            rebuildChordSpinner(j);
+                        }
+                    }
+                }
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+        for (int i = 0; i < n; i++) {
+            rebuildChordSpinner(i);
+        }
+    }
+
+    /** Rebuilds one chord spinner's items honoring mutual exclusion, preserving its own selection. */
+    private void rebuildChordSpinner(int idx) {
+        java.util.List<KeyShortcut.ChordKey> avail = new java.util.ArrayList<>();
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        for (int k = 0; k < mAllChords.length; k++) {
+            KeyShortcut.ChordKey ck = mAllChords[k];
+            boolean usedByOther = false;
+            if (ck != KeyShortcut.ChordKey.NONE) {
+                for (int j = 0; j < mChordSelected.length; j++) {
+                    if (j != idx && ck.key.equals(mChordSelected[j])) {
+                        usedByOther = true;
+                        break;
+                    }
+                }
+            }
+            if (!usedByOther) {
+                avail.add(ck);
+                labels.add(mChordLabels[k]);
+            }
+        }
+        mChordShown.set(idx, avail);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        int sel = 0;
+        for (int p = 0; p < avail.size(); p++) {
+            if (avail.get(p).key.equals(mChordSelected[idx])) {
+                sel = p;
+                break;
+            }
+        }
+        mChordSpinnerUpdating = true;
+        mChordSpinners[idx].setAdapter(adapter);
+        mChordSpinners[idx].setSelection(sel);
+        mChordSpinnerUpdating = false;
     }
 
     private void updateNetworkInterfaceSpinner() {

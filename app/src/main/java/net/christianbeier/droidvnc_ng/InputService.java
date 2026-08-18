@@ -47,6 +47,7 @@ import androidx.annotation.WorkerThread;
 import androidx.preference.PreferenceManager;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,8 +91,9 @@ public class InputService extends AccessibilityService {
 		boolean isKeyCtrlDown;
 		boolean isKeyAltDown;
 		boolean isKeyShiftDown;
-		boolean isKeyDelDown;
-		boolean isKeyEscDown;
+		// keysym of the shortcut trigger currently held down, so client key auto-repeat fires the
+		// chord only once (0 = none held)
+		long heldShortcutTrigger;
 
 		private int displayId = Display.DEFAULT_DISPLAY;
 
@@ -162,8 +164,7 @@ public class InputService extends AccessibilityService {
 			isKeyCtrlDown = false;
 			isKeyAltDown = false;
 			isKeyShiftDown = false;
-			isKeyDelDown = false;
-			isKeyEscDown = false;
+			heldShortcutTrigger = 0;
 
 			// Gesture state
 			path.reset();
@@ -182,6 +183,11 @@ public class InputService extends AccessibilityService {
 	 */
 	static float scaling;
 	static boolean isInputEnabled;
+	/**
+	 * Active keyboard shortcut chord bindings (per-action assignments), rebuilt from prefs/defaults
+	 * in onServiceConnected() and live-updated from the settings UI. Empty until first built.
+	 */
+	static volatile List<KeyShortcut.ChordBinding> sShortcutBindings = java.util.Collections.emptyList();
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -250,6 +256,14 @@ public class InputService extends AccessibilityService {
 		instance = this;
 		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
 		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
+		sShortcutBindings = KeyShortcut.buildBindings(
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, new Defaults(this).getChordRecents()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_HOME, new Defaults(this).getChordHome()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_BACK, new Defaults(this).getChordBack()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_POWER, new Defaults(this).getChordPower()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP, new Defaults(this).getChordVolumeUp()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN, new Defaults(this).getChordVolumeDown()),
+				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, new Defaults(this).getChordRotate()));
 		mMainHandler = new Handler(instance.getMainLooper());
 		// (re-)add any InputContext's InputPointerViews
 		for (InputContext inputContext : inputContexts.values()) {
@@ -429,6 +443,51 @@ public class InputService extends AccessibilityService {
 		}
 	}
 
+	/**
+	 * Executes a {@link KeyShortcut.ShortcutAction} resolved from the active chord bindings. All
+	 * actions go through the accessibility service / AudioManager / MediaProjectionService and reuse
+	 * the same calls the shortcuts used when they were hard-coded.
+	 */
+	private static void performShortcut(KeyShortcut.ShortcutAction action) {
+		if (instance == null) {
+			return;
+		}
+		switch (action) {
+			case RECENTS:
+				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+				break;
+			case HOME:
+				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+				break;
+			case BACK:
+				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+				break;
+			case POWER_DIALOG:
+				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+				break;
+			case VOLUME_UP:
+				adjustVolume(AudioManager.ADJUST_RAISE);
+				break;
+			case VOLUME_DOWN:
+				adjustVolume(AudioManager.ADJUST_LOWER);
+				break;
+			case ROTATE:
+				instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
+				break;
+			case NONE:
+			default:
+				break;
+		}
+	}
+
+	/** Adjusts the media/ring volume with the system UI shown, for the volume chord shortcuts. */
+	private static void adjustVolume(int direction) {
+		if (instance == null) {
+			return;
+		}
+		((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(direction, AudioManager.FLAG_SHOW_UI);
+	}
+
     @WorkerThread
 	@Keep
 	public static void onKeyEvent(int down, long keysym, long client) {
@@ -466,7 +525,7 @@ public class InputService extends AccessibilityService {
 			if (keysym == 0xff9f) keysym = 0xffff; // KP_Delete    -> Delete
 
 			/*
-				Save states of some keys for combo handling.
+				Track Ctrl/Alt/Shift state for the configurable shortcut chords below.
 			 */
 			if(keysym == 0xFFE3)
 				inputContext.isKeyCtrlDown = down != 0;
@@ -477,66 +536,26 @@ public class InputService extends AccessibilityService {
 			if(keysym == 0xFFE1)
 				inputContext.isKeyShiftDown = down != 0;
 
-			if(keysym == 0xFFFF)
-				inputContext.isKeyDelDown = down != 0;
-
-			if(keysym == 0xFF1B)
-				inputContext.isKeyEscDown = down != 0;
-
 			/*
-				Ctrl-Alt-Del combo.
-		 	*/
-			if(inputContext.isKeyCtrlDown && inputContext.isKeyAltDown && inputContext.isKeyDelDown) {
-				Log.i(TAG, "onKeyEvent: got Ctrl-Alt-Del");
-				instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
-			}
-
-			/*
-				Ctrl-Shift-Esc combo.
-		 	*/
-			if(inputContext.isKeyCtrlDown && inputContext.isKeyShiftDown && inputContext.isKeyEscDown) {
-				Log.i(TAG, "onKeyEvent: got Ctrl-Shift-Esc");
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-			}
-
-			/*
-				Home/Pos1
-		 	*/
-			if (keysym == 0xFF50 && down != 0) {
-				Log.i(TAG, "onKeyEvent: got Home/Pos1");
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-			}
-
-			/*
-				End
-			*/
-			if (keysym == 0xFF57 && down != 0) {
-				Log.i(TAG, "onKeyEvent: got End");
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
-			}
-
-			/*
-				Esc
+				Configurable keyboard shortcuts (issue #13): match the current modifier state and this
+				key against the chord the user assigned to each action (see KeyShortcut / Settings). A
+				match is consumed here -- it is not also injected below -- and the heldShortcutTrigger
+				latch debounces client key auto-repeat so a held chord fires only once.
 			 */
-			if(keysym == 0xFF1B && down != 0)  {
-				Log.i(TAG, "onKeyEvent: got Esc");
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-			}
-
-			/*
-				Ctrl-Alt-PageUp
-			 */
-			if(inputContext.isKeyCtrlDown && inputContext.isKeyAltDown && keysym == 0xff55 && down != 0) {
-				Log.i(TAG, "onKeyEvent: got Ctrl-Alt-PageUp");
-				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
-			}
-
-			/*
-				Ctrl-Alt-PageDown
-			 */
-			if(inputContext.isKeyCtrlDown && inputContext.isKeyAltDown && keysym == 0xff56 && down != 0) {
-				Log.i(TAG, "onKeyEvent: got Ctrl-Alt-PageDown");
-				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
+			if(down != 0) {
+				KeyShortcut.ShortcutAction shortcut = KeyShortcut.match(sShortcutBindings,
+						inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
+				if(shortcut != KeyShortcut.ShortcutAction.NONE) {
+					if(inputContext.heldShortcutTrigger != keysym) {
+						inputContext.heldShortcutTrigger = keysym;
+						performShortcut(shortcut);
+					}
+					return;
+				}
+			} else if(inputContext.heldShortcutTrigger == keysym) {
+				// release of a consumed shortcut trigger: consume the up too and re-arm
+				inputContext.heldShortcutTrigger = 0;
+				return;
 			}
 
 			/*
