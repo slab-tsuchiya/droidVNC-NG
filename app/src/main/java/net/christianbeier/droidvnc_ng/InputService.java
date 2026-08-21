@@ -187,7 +187,7 @@ public class InputService extends AccessibilityService {
 	 * Active keyboard shortcut chord bindings (per-action assignments), rebuilt from prefs/defaults
 	 * in onServiceConnected() and live-updated from the settings UI. Empty until first built.
 	 */
-	static volatile List<KeyShortcut.ChordBinding> sShortcutBindings = java.util.Collections.emptyList();
+	static volatile List<InputKeyShortcut.ChordBinding> sShortcutBindings = java.util.Collections.emptyList();
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -256,7 +256,7 @@ public class InputService extends AccessibilityService {
 		instance = this;
 		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
 		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
-		sShortcutBindings = KeyShortcut.buildBindings(
+		sShortcutBindings = InputKeyShortcut.buildBindings(
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, new Defaults(this).getChordRecents()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_HOME, new Defaults(this).getChordHome()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_BACK, new Defaults(this).getChordBack()),
@@ -444,11 +444,11 @@ public class InputService extends AccessibilityService {
 	}
 
 	/**
-	 * Executes a {@link KeyShortcut.ShortcutAction} resolved from the active chord bindings. All
+	 * Executes a {@link InputKeyShortcut.ShortcutAction} resolved from the active chord bindings. All
 	 * actions go through the accessibility service / AudioManager / MediaProjectionService and reuse
 	 * the same calls the shortcuts used when they were hard-coded.
 	 */
-	private static void performShortcut(KeyShortcut.ShortcutAction action) {
+	private static void performShortcut(InputKeyShortcut.ShortcutAction action) {
 		if (instance == null) {
 			return;
 		}
@@ -538,14 +538,14 @@ public class InputService extends AccessibilityService {
 
 			/*
 				Configurable keyboard shortcuts (issue #13): match the current modifier state and this
-				key against the chord the user assigned to each action (see KeyShortcut / Settings). A
+				key against the chord the user assigned to each action (see InputKeyShortcut / Settings). A
 				match is consumed here -- it is not also injected below -- and the heldShortcutTrigger
 				latch debounces client key auto-repeat so a held chord fires only once.
 			 */
 			if(down != 0) {
-				KeyShortcut.ShortcutAction shortcut = KeyShortcut.match(sShortcutBindings,
+				InputKeyShortcut.ShortcutAction shortcut = InputKeyShortcut.match(sShortcutBindings,
 						inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
-				if(shortcut != KeyShortcut.ShortcutAction.NONE) {
+				if(shortcut != InputKeyShortcut.ShortcutAction.NONE) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;
 						performShortcut(shortcut);

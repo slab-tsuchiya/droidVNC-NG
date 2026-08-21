@@ -117,12 +117,12 @@ public class MainActivity extends AppCompatActivity {
     private final ConcurrentHashMap<Long, String> mNetworkInterfaces = new ConcurrentHashMap<>();
     private Spinner mNetworkInterfaceSpinner;
     private ArrayAdapter<String> mNetworkInterfaceAdapter;
-    // keyboard shortcut chord spinners; order matches KeyShortcut.buildBindings()
+    // keyboard shortcut chord spinners; order matches InputKeyShortcut.buildBindings()
     private Spinner[] mChordSpinners;
     private String[] mChordSelected;                                   // ChordKey.key per action
-    private java.util.List<java.util.List<KeyShortcut.ChordKey>> mChordShown; // position->ChordKey per spinner
+    private java.util.List<java.util.List<InputKeyShortcut.ChordKey>> mChordShown; // position->ChordKey per spinner
     private String[] mChordLabels;
-    private KeyShortcut.ChordKey[] mAllChords;
+    private InputKeyShortcut.ChordKey[] mAllChords;
     private boolean mChordSpinnerUpdating;
 
     @Override
@@ -921,13 +921,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Wires the keyboard-shortcut chord spinners (one per {@link KeyShortcut.ShortcutAction}). Each
-     * offers the fixed candidate chords from {@link KeyShortcut.ChordKey}, but a chord already
+     * Wires the keyboard-shortcut chord spinners (one per {@link InputKeyShortcut.ShortcutAction}). Each
+     * offers the fixed candidate chords from {@link InputKeyShortcut.ChordKey}, but a chord already
      * assigned to one action is hidden from the others (mutual exclusion; "None" always available).
      * Selections persist to prefs and live-update the running InputService.
      */
     private void setupChordSpinners(final SharedPreferences prefs) {
-        // order must match KeyShortcut.buildBindings(): recents, home, back, power, volumeUp, volumeDown, rotate
+        // order must match InputKeyShortcut.buildBindings(): recents, home, back, power, volumeUp, volumeDown, rotate
         final int[] ids = {
                 R.id.settings_chord_recents, R.id.settings_chord_home, R.id.settings_chord_back,
                 R.id.settings_chord_power, R.id.settings_chord_volume_up,
@@ -948,14 +948,14 @@ public class MainActivity extends AppCompatActivity {
                 mDefaults.getChordVolumeDown(), mDefaults.getChordRotate()
         };
         final int n = ids.length;
-        mAllChords = KeyShortcut.ChordKey.values();
+        mAllChords = InputKeyShortcut.ChordKey.values();
         mChordLabels = getResources().getStringArray(R.array.chord_labels);
         mChordSpinners = new Spinner[n];
         mChordSelected = new String[n];
         mChordShown = new java.util.ArrayList<>();
         for (int i = 0; i < n; i++) {
             mChordSpinners[i] = findViewById(ids[i]);
-            mChordSelected[i] = KeyShortcut.ChordKey.fromKey(prefs.getString(prefKeys[i], defaults[i])).key;
+            mChordSelected[i] = InputKeyShortcut.ChordKey.fromKey(prefs.getString(prefKeys[i], defaults[i])).key;
             mChordShown.add(new java.util.ArrayList<>());
         }
         for (int i = 0; i < n; i++) {
@@ -967,14 +967,14 @@ public class MainActivity extends AppCompatActivity {
                     if (mChordSpinnerUpdating) {
                         return;
                     }
-                    KeyShortcut.ChordKey picked = mChordShown.get(idx).get(position);
+                    InputKeyShortcut.ChordKey picked = mChordShown.get(idx).get(position);
                     if (picked.key.equals(mChordSelected[idx])) {
                         return; // no actual change (e.g. a re-layout callback)
                     }
                     mChordSelected[idx] = picked.key;
                     prefs.edit().putString(prefKey, picked.key).apply();
                     // live-update the running input service, then refresh the others for exclusivity
-                    InputService.sShortcutBindings = KeyShortcut.buildBindings(
+                    InputService.sShortcutBindings = InputKeyShortcut.buildBindings(
                             mChordSelected[0], mChordSelected[1], mChordSelected[2], mChordSelected[3],
                             mChordSelected[4], mChordSelected[5], mChordSelected[6]);
                     for (int j = 0; j < mChordSpinners.length; j++) {
@@ -994,12 +994,12 @@ public class MainActivity extends AppCompatActivity {
 
     /** Rebuilds one chord spinner's items honoring mutual exclusion, preserving its own selection. */
     private void rebuildChordSpinner(int idx) {
-        java.util.List<KeyShortcut.ChordKey> avail = new java.util.ArrayList<>();
+        java.util.List<InputKeyShortcut.ChordKey> avail = new java.util.ArrayList<>();
         java.util.List<String> labels = new java.util.ArrayList<>();
         for (int k = 0; k < mAllChords.length; k++) {
-            KeyShortcut.ChordKey ck = mAllChords[k];
+            InputKeyShortcut.ChordKey ck = mAllChords[k];
             boolean usedByOther = false;
-            if (ck != KeyShortcut.ChordKey.NONE) {
+            if (ck != InputKeyShortcut.ChordKey.NONE) {
                 for (int j = 0; j < mChordSelected.length; j++) {
                     if (j != idx && ck.key.equals(mChordSelected[j])) {
                         usedByOther = true;

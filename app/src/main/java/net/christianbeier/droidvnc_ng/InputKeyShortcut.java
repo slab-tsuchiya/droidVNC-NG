@@ -1,6 +1,8 @@
 /*
  * DroidVNC-NG configurable keyboard shortcuts.
  *
+ * Author is slab-tsuchiya <https://github.com/slab-tsuchiya>.
+ *
  * You can redistribute and/or modify this program under the terms of the
  * GNU General Public License version 2 as published by the Free Software
  * Foundation.
@@ -30,9 +32,9 @@ import java.util.List;
  * <p>RFB/X11 keysyms used as triggers: Home = 0xFF50, Left = 0xFF51, Esc = 0xFF1B, Delete = 0xFFFF,
  * End = 0xFF57, PageUp = 0xFF55, PageDown = 0xFF56, Backspace = 0xFF08.
  */
-final class KeyShortcut {
+final class InputKeyShortcut {
 
-    private KeyShortcut() {}
+    private InputKeyShortcut() {}
 
     /** Action a chord is assigned to. Execution lives in the caller. */
     enum ShortcutAction {
@@ -45,20 +47,22 @@ final class KeyShortcut {
      * state and the trigger keysym (0 for NONE, which never matches).
      */
     enum ChordKey {
+        // Constructor args, in order: (persisted key, ctrl, alt, shift, trigger keysym).
+        // The persisted key uses the same "+"-joined notation as the UI labels.
         NONE("none", false, false, false, 0),
         HOME("home", false, false, false, 0xFF50),
         ESC("esc", false, false, false, 0xFF1B),
         END("end", false, false, false, 0xFF57),
-        CTRL_ESC("ctrl_esc", true, false, false, 0xFF1B),
-        CTRL_SHIFT_ESC("ctrl_shift_esc", true, false, true, 0xFF1B),
-        CTRL_ALT_DEL("ctrl_alt_del", true, true, false, 0xFFFF),
-        CTRL_ALT_HOME("ctrl_alt_home", true, true, false, 0xFF50),
-        CTRL_ALT_END("ctrl_alt_end", true, true, false, 0xFF57),
-        CTRL_ALT_BACKSPACE("ctrl_alt_backspace", true, true, false, 0xFF08),
-        CTRL_ALT_PAGEUP("ctrl_alt_pageup", true, true, false, 0xFF55),
-        CTRL_ALT_PAGEDOWN("ctrl_alt_pagedown", true, true, false, 0xFF56),
-        ALT_HOME("alt_home", false, true, false, 0xFF50),
-        ALT_LEFT("alt_left", false, true, false, 0xFF51);
+        CTRL_ESC("ctrl+esc", true, false, false, 0xFF1B),
+        CTRL_SHIFT_ESC("ctrl+shift+esc", true, false, true, 0xFF1B),
+        CTRL_ALT_DEL("ctrl+alt+del", true, true, false, 0xFFFF),
+        CTRL_ALT_HOME("ctrl+alt+home", true, true, false, 0xFF50),
+        CTRL_ALT_END("ctrl+alt+end", true, true, false, 0xFF57),
+        CTRL_ALT_BACKSPACE("ctrl+alt+backspace", true, true, false, 0xFF08),
+        CTRL_ALT_PAGEUP("ctrl+alt+pageup", true, true, false, 0xFF55),
+        CTRL_ALT_PAGEDOWN("ctrl+alt+pagedown", true, true, false, 0xFF56),
+        ALT_HOME("alt+home", false, true, false, 0xFF50),
+        ALT_LEFT("alt+left", false, true, false, 0xFF51);
 
         final String key;
         final boolean ctrl;

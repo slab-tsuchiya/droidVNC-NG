@@ -89,11 +89,11 @@ class Defaults {
         private set
 
     /*
-       Keyboard shortcut chord assignments (one KeyShortcut.ChordKey per action). Defaults
+       Keyboard shortcut chord assignments (one InputKeyShortcut.ChordKey per action). Defaults
        reproduce the historical hard-coded shortcuts.
      */
     @EncodeDefault
-    var chordRecents = "ctrl_shift_esc"
+    var chordRecents = "ctrl+shift+esc"
         private set
 
     @EncodeDefault
@@ -109,15 +109,15 @@ class Defaults {
         private set
 
     @EncodeDefault
-    var chordVolumeUp = "ctrl_alt_pageup"
+    var chordVolumeUp = "ctrl+alt+pageup"
         private set
 
     @EncodeDefault
-    var chordVolumeDown = "ctrl_alt_pagedown"
+    var chordVolumeDown = "ctrl+alt+pagedown"
         private set
 
     @EncodeDefault
-    var chordRotate = "ctrl_alt_del"
+    var chordRotate = "ctrl+alt+del"
         private set
 
     /*
