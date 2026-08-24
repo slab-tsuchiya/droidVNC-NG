@@ -48,6 +48,15 @@
     <string name="main_activity_repeater_vnc_input_missing">호스트 및/또는 ID 누락</string>
     <string name="main_activity_reconnect_tries_hint">최대 재연결 시도 수</string>
     <string name="main_activity_special_key_reference">VNC 뷰어에서 <b>Ctrl-Shift-Esc</b>는 최신 앱 개요를, <b>Home/Pos1</b>은 홈 버튼을, <b>End</b>는 전원 버튼을, <b>Esc</b>는 뒤로 가기 버튼을, <b>Ctrl-Alt-PageUp/PageDown</b>은 음량 조절을 트리거합니다.</string>
+    <string name="main_activity_settings_key_shortcuts">키보드 단축키</string>
+    <string name="main_activity_settings_chord_recents">최근 앱</string>
+    <string name="main_activity_settings_chord_home">홈</string>
+    <string name="main_activity_settings_chord_back">뒤로</string>
+    <string name="main_activity_settings_chord_power">전원 메뉴</string>
+    <string name="main_activity_settings_chord_volume_up">음량 높이기</string>
+    <string name="main_activity_settings_chord_volume_down">음량 낮추기</string>
+    <string name="main_activity_settings_chord_rotate">화면 회전</string>
+    <string name="main_activity_settings_chord_conflict">%1$s은(는) 이미 다른 동작에 할당되어 있습니다</string>
     <string name="main_activity_about">이것은 droidVNC-NG %1$s입니다. 아직 droidVNC-NG에 더 많은 기능이 추가되고 있습니다. 문제 및 기능 요청은 https://github.com/bk138/droidVNC-NG/issues에서 신고할 수 있습니다.</string>
     <string name="main_activity_survey_button">피드백 제공</string>
     <plurals name="main_service_notification_text_not_listening">

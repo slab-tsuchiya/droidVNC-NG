@@ -57,6 +57,8 @@
     <string name="main_activity_settings_chord_volume_up">Volume up</string>
     <string name="main_activity_settings_chord_volume_down">Volume down</string>
     <string name="main_activity_settings_chord_rotate">Rotate</string>
+    <!-- Modifier names (Ctrl/Alt/Shift) and trigger key names (Home, End, Esc, F1...) are
+         intentionally left untranslated as they match physical keycaps. -->
     <string name="key_modifier_ctrl">Ctrl</string>
     <string name="key_modifier_alt">Alt</string>
     <string name="key_modifier_shift">Shift</string>
