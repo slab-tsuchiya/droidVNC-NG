@@ -63,6 +63,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -117,13 +119,15 @@ public class MainActivity extends AppCompatActivity {
     private final ConcurrentHashMap<Long, String> mNetworkInterfaces = new ConcurrentHashMap<>();
     private Spinner mNetworkInterfaceSpinner;
     private ArrayAdapter<String> mNetworkInterfaceAdapter;
-    // keyboard shortcut chord spinners; order matches InputKeyShortcut.buildBindings()
-    private Spinner[] mChordSpinners;
-    private String[] mChordSelected;                                   // ChordKey.key per action
-    private java.util.List<java.util.List<InputKeyShortcut.ChordKey>> mChordShown; // position->ChordKey per spinner
-    private String[] mChordLabels;
-    private InputKeyShortcut.ChordKey[] mAllChords;
-    private boolean mChordSpinnerUpdating;
+    // keyboard shortcut chord controls; order matches InputKeyShortcut.buildBindings()
+    private CheckBox[] mChordCtrl;
+    private CheckBox[] mChordAlt;
+    private CheckBox[] mChordShift;
+    private Spinner[] mChordKeySpinners;
+    private String[] mChordPrefKeys;                                   // prefs key per action
+    private String[] mChordSelected;                                  // last-good "+"-string per action
+    private InputKeyShortcut.TriggerKey[] mTriggerKeys;                    // spinner order = enum order
+    private boolean mChordUpdating;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,8 +203,8 @@ public class MainActivity extends AppCompatActivity {
         });
         updateNetworkInterfaceSpinner();
 
-        // Wire up per-action keyboard shortcut chord spinners (mutually exclusive)
-        setupChordSpinners(prefs);
+        // Wire up the per-action keyboard shortcut chord controls (checkboxes + trigger-key spinner)
+        setupChordControls(prefs);
 
         Button reverseVNC = findViewById(R.id.reverse_vnc);
         reverseVNC.setOnClickListener(view -> {
@@ -921,19 +925,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Wires the keyboard-shortcut chord spinners (one per {@link InputKeyShortcut.ShortcutAction}). Each
-     * offers the fixed candidate chords from {@link InputKeyShortcut.ChordKey}, but a chord already
-     * assigned to one action is hidden from the others (mutual exclusion; "None" always available).
-     * Selections persist to prefs and live-update the running InputService.
+     * Wires the per-action keyboard-shortcut chord controls (one row per {@link
+     * InputKeyShortcut.ShortcutAction}). Each row is three modifier checkboxes (Ctrl/Alt/Shift) plus a
+     * trigger-key spinner offering {@link InputKeyShortcut.TriggerKey}. A change recomposes the chord,
+     * persists it and live-updates the running InputService; assigning a chord already used by
+     * another action is rejected (toast + revert) instead of filtering the choices.
      */
-    private void setupChordSpinners(final SharedPreferences prefs) {
+    private void setupChordControls(final SharedPreferences prefs) {
         // order must match InputKeyShortcut.buildBindings(): recents, home, back, power, volumeUp, volumeDown, rotate
-        final int[] ids = {
-                R.id.settings_chord_recents, R.id.settings_chord_home, R.id.settings_chord_back,
-                R.id.settings_chord_power, R.id.settings_chord_volume_up,
-                R.id.settings_chord_volume_down, R.id.settings_chord_rotate
+        final int[] ctrlIds = {
+                R.id.settings_chord_recents_ctrl, R.id.settings_chord_home_ctrl, R.id.settings_chord_back_ctrl,
+                R.id.settings_chord_power_ctrl, R.id.settings_chord_volume_up_ctrl,
+                R.id.settings_chord_volume_down_ctrl, R.id.settings_chord_rotate_ctrl
         };
-        final String[] prefKeys = {
+        final int[] altIds = {
+                R.id.settings_chord_recents_alt, R.id.settings_chord_home_alt, R.id.settings_chord_back_alt,
+                R.id.settings_chord_power_alt, R.id.settings_chord_volume_up_alt,
+                R.id.settings_chord_volume_down_alt, R.id.settings_chord_rotate_alt
+        };
+        final int[] shiftIds = {
+                R.id.settings_chord_recents_shift, R.id.settings_chord_home_shift, R.id.settings_chord_back_shift,
+                R.id.settings_chord_power_shift, R.id.settings_chord_volume_up_shift,
+                R.id.settings_chord_volume_down_shift, R.id.settings_chord_rotate_shift
+        };
+        final int[] keyIds = {
+                R.id.settings_chord_recents_key, R.id.settings_chord_home_key, R.id.settings_chord_back_key,
+                R.id.settings_chord_power_key, R.id.settings_chord_volume_up_key,
+                R.id.settings_chord_volume_down_key, R.id.settings_chord_rotate_key
+        };
+        mChordPrefKeys = new String[]{
                 Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS,
                 Constants.PREFS_KEY_SETTINGS_CHORD_HOME,
                 Constants.PREFS_KEY_SETTINGS_CHORD_BACK,
@@ -947,85 +967,109 @@ public class MainActivity extends AppCompatActivity {
                 mDefaults.getChordPower(), mDefaults.getChordVolumeUp(),
                 mDefaults.getChordVolumeDown(), mDefaults.getChordRotate()
         };
-        final int n = ids.length;
-        mAllChords = InputKeyShortcut.ChordKey.values();
-        mChordLabels = getResources().getStringArray(R.array.chord_labels);
-        mChordSpinners = new Spinner[n];
-        mChordSelected = new String[n];
-        mChordShown = new java.util.ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            mChordSpinners[i] = findViewById(ids[i]);
-            mChordSelected[i] = InputKeyShortcut.ChordKey.fromKey(prefs.getString(prefKeys[i], defaults[i])).key;
-            mChordShown.add(new java.util.ArrayList<>());
+        final int n = ctrlIds.length;
+
+        mTriggerKeys = InputKeyShortcut.TriggerKey.values();
+        String[] keyLabels = new String[mTriggerKeys.length];
+        for (int k = 0; k < mTriggerKeys.length; k++) {
+            keyLabels[k] = mTriggerKeys[k].label;
         }
+
+        mChordCtrl = new CheckBox[n];
+        mChordAlt = new CheckBox[n];
+        mChordShift = new CheckBox[n];
+        mChordKeySpinners = new Spinner[n];
+        mChordSelected = new String[n];
+
+        mChordUpdating = true; // set initial state without firing the change listeners
+        for (int i = 0; i < n; i++) {
+            mChordCtrl[i] = findViewById(ctrlIds[i]);
+            mChordAlt[i] = findViewById(altIds[i]);
+            mChordShift[i] = findViewById(shiftIds[i]);
+            mChordKeySpinners[i] = findViewById(keyIds[i]);
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, keyLabels);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            mChordKeySpinners[i].setAdapter(adapter);
+
+            InputKeyShortcut.Chord chord = InputKeyShortcut.parse(prefs.getString(mChordPrefKeys[i], defaults[i]));
+            mChordSelected[i] = chord.toKey();
+            applyChordToRow(i, chord);
+        }
+        mChordUpdating = false;
+
         for (int i = 0; i < n; i++) {
             final int idx = i;
-            final String prefKey = prefKeys[i];
-            mChordSpinners[i].setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            CompoundButton.OnCheckedChangeListener cbListener =
+                    (buttonView, isChecked) -> onChordChanged(idx);
+            mChordCtrl[i].setOnCheckedChangeListener(cbListener);
+            mChordAlt[i].setOnCheckedChangeListener(cbListener);
+            mChordShift[i].setOnCheckedChangeListener(cbListener);
+            mChordKeySpinners[i].setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    if (mChordSpinnerUpdating) {
-                        return;
-                    }
-                    InputKeyShortcut.ChordKey picked = mChordShown.get(idx).get(position);
-                    if (picked.key.equals(mChordSelected[idx])) {
-                        return; // no actual change (e.g. a re-layout callback)
-                    }
-                    mChordSelected[idx] = picked.key;
-                    prefs.edit().putString(prefKey, picked.key).apply();
-                    // live-update the running input service, then refresh the others for exclusivity
-                    InputService.sShortcutBindings = InputKeyShortcut.buildBindings(
-                            mChordSelected[0], mChordSelected[1], mChordSelected[2], mChordSelected[3],
-                            mChordSelected[4], mChordSelected[5], mChordSelected[6]);
-                    for (int j = 0; j < mChordSpinners.length; j++) {
-                        if (j != idx) {
-                            rebuildChordSpinner(j);
-                        }
-                    }
+                    onChordChanged(idx);
                 }
                 @Override
                 public void onNothingSelected(AdapterView<?> parent) {}
             });
         }
-        for (int i = 0; i < n; i++) {
-            rebuildChordSpinner(i);
-        }
     }
 
-    /** Rebuilds one chord spinner's items honoring mutual exclusion, preserving its own selection. */
-    private void rebuildChordSpinner(int idx) {
-        java.util.List<InputKeyShortcut.ChordKey> avail = new java.util.ArrayList<>();
-        java.util.List<String> labels = new java.util.ArrayList<>();
-        for (int k = 0; k < mAllChords.length; k++) {
-            InputKeyShortcut.ChordKey ck = mAllChords[k];
-            boolean usedByOther = false;
-            if (ck != InputKeyShortcut.ChordKey.NONE) {
-                for (int j = 0; j < mChordSelected.length; j++) {
-                    if (j != idx && ck.key.equals(mChordSelected[j])) {
-                        usedByOther = true;
-                        break;
-                    }
-                }
-            }
-            if (!usedByOther) {
-                avail.add(ck);
-                labels.add(mChordLabels[k]);
-            }
-        }
-        mChordShown.set(idx, avail);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        int sel = 0;
-        for (int p = 0; p < avail.size(); p++) {
-            if (avail.get(p).key.equals(mChordSelected[idx])) {
-                sel = p;
+    /** Sets a row's three modifier checkboxes and key spinner from a parsed chord. Mute listeners first. */
+    private void applyChordToRow(int idx, InputKeyShortcut.Chord chord) {
+        mChordCtrl[idx].setChecked(chord.ctrl);
+        mChordAlt[idx].setChecked(chord.alt);
+        mChordShift[idx].setChecked(chord.shift);
+        int pos = 0;
+        for (int k = 0; k < mTriggerKeys.length; k++) {
+            if (mTriggerKeys[k] == chord.key) {
+                pos = k;
                 break;
             }
         }
-        mChordSpinnerUpdating = true;
-        mChordSpinners[idx].setAdapter(adapter);
-        mChordSpinners[idx].setSelection(sel);
-        mChordSpinnerUpdating = false;
+        mChordKeySpinners[idx].setSelection(pos);
+    }
+
+    /** Reads a row's controls into a {@link InputKeyShortcut.Chord}. */
+    private InputKeyShortcut.Chord readChordFromRow(int idx) {
+        InputKeyShortcut.TriggerKey key = mTriggerKeys[mChordKeySpinners[idx].getSelectedItemPosition()];
+        return new InputKeyShortcut.Chord(
+                mChordCtrl[idx].isChecked(), mChordAlt[idx].isChecked(), mChordShift[idx].isChecked(), key);
+    }
+
+    /**
+     * Handles a change on action {@code idx}: recompose the chord; if it duplicates another action's
+     * assigned chord, toast and revert; otherwise persist it and live-update the running InputService.
+     */
+    private void onChordChanged(int idx) {
+        if (mChordUpdating) {
+            return;
+        }
+        InputKeyShortcut.Chord chord = readChordFromRow(idx);
+        String key = chord.toKey();
+        if (key.equals(mChordSelected[idx])) {
+            return; // no actual change (e.g. a re-layout or unchanged re-selection callback)
+        }
+        // mutual exclusion: an assigned chord may not equal another action's assigned chord
+        if (chord.isAssigned()) {
+            for (int j = 0; j < mChordSelected.length; j++) {
+                if (j != idx && key.equals(mChordSelected[j])) {
+                    Toast.makeText(this, getString(R.string.main_activity_settings_chord_conflict, key),
+                            Toast.LENGTH_SHORT).show();
+                    mChordUpdating = true;
+                    applyChordToRow(idx, InputKeyShortcut.parse(mChordSelected[idx])); // revert to last good
+                    mChordUpdating = false;
+                    return;
+                }
+            }
+        }
+        mChordSelected[idx] = key;
+        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(mChordPrefKeys[idx], key).apply();
+        // live-update the running input service
+        InputService.sShortcutBindings = InputKeyShortcut.buildBindings(
+                mChordSelected[0], mChordSelected[1], mChordSelected[2], mChordSelected[3],
+                mChordSelected[4], mChordSelected[5], mChordSelected[6]);
     }
 
     private void updateNetworkInterfaceSpinner() {

@@ -17,20 +17,24 @@ package net.christianbeier.droidvnc_ng;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Configurable VNC keyboard shortcuts (see issue #13).
  *
- * <p>The user assigns, per action ({@link ShortcutAction}), one {@link ChordKey} from a fixed
- * candidate list (or {@link ChordKey#NONE}). This class turns those assignments into
- * {@link ChordBinding}s and matches an incoming (modifier state, trigger keysym) against them. It
- * performs no Android calls of its own -- the caller (InputService) executes the returned action.
+ * <p>The user assigns, per action ({@link ShortcutAction}), one chord: any combination of the
+ * {@code ctrl}/{@code alt}/{@code shift} modifiers plus a single {@link TriggerKey}. A chord is
+ * stored (in prefs / managed config) as a lower-case {@code "+"}-joined string such as
+ * {@code "ctrl+alt+del"} or {@code "esc"}; the token {@code "none"} (or an empty/unknown trigger)
+ * means "not assigned". {@link #parse(String)} turns a stored string into a {@link Chord}, and
+ * {@link Chord#toKey()} turns it back, so no closed enum of pre-composed chords has to be extended
+ * whenever a new modifier/key combination is wanted.
  *
- * <p>Modifier matching is <em>exact</em>: a binding matches only when its ctrl/alt/shift flags equal
- * the current modifier state, so a bare trigger key and its modified chord never collide.
- *
- * <p>RFB/X11 keysyms used as triggers: Home = 0xFF50, Left = 0xFF51, Esc = 0xFF1B, Delete = 0xFFFF,
- * End = 0xFF57, PageUp = 0xFF55, PageDown = 0xFF56, Backspace = 0xFF08.
+ * <p>This class performs no Android calls of its own -- the caller (InputService) executes the
+ * returned {@link ShortcutAction} -- so it stays free of any root/accessibility dependency and is
+ * trivially portable. Modifier matching is <em>exact</em>: a binding matches only when its
+ * ctrl/alt/shift flags equal the current modifier state, so a bare trigger key and its modified
+ * chord never collide.
  */
 final class InputKeyShortcut {
 
@@ -42,53 +46,132 @@ final class InputKeyShortcut {
     }
 
     /**
-     * The fixed candidate chords offered in the UI. {@link #NONE} means "not assigned". The
-     * declaration order is also the order shown in the spinners. Each carries its exact modifier
-     * state and the trigger keysym (0 for NONE, which never matches).
+     * The trigger keys offered in the UI's per-action key spinner. Each carries a display label, the
+     * lower-case token used in the persisted {@code "+"}-string, and the RFB/X11 keysym the viewer
+     * sends. {@link #NONE} (keysym 0, which never matches) means "action disabled". Declaration order
+     * is the spinner order.
      */
-    enum ChordKey {
-        // Constructor args, in order: (persisted key, ctrl, alt, shift, trigger keysym).
-        // The persisted key uses the same "+"-joined notation as the UI labels.
-        NONE("none", false, false, false, 0),
-        HOME("home", false, false, false, 0xFF50),
-        ESC("esc", false, false, false, 0xFF1B),
-        END("end", false, false, false, 0xFF57),
-        CTRL_ESC("ctrl+esc", true, false, false, 0xFF1B),
-        CTRL_SHIFT_ESC("ctrl+shift+esc", true, false, true, 0xFF1B),
-        CTRL_ALT_DEL("ctrl+alt+del", true, true, false, 0xFFFF),
-        CTRL_ALT_HOME("ctrl+alt+home", true, true, false, 0xFF50),
-        CTRL_ALT_END("ctrl+alt+end", true, true, false, 0xFF57),
-        CTRL_ALT_BACKSPACE("ctrl+alt+backspace", true, true, false, 0xFF08),
-        CTRL_ALT_PAGEUP("ctrl+alt+pageup", true, true, false, 0xFF55),
-        CTRL_ALT_PAGEDOWN("ctrl+alt+pagedown", true, true, false, 0xFF56),
-        ALT_HOME("alt+home", false, true, false, 0xFF50),
-        ALT_LEFT("alt+left", false, true, false, 0xFF51);
+    enum TriggerKey {
+        NONE("None", "none", 0),
+        HOME("Home", "home", 0xFF50),
+        END("End", "end", 0xFF57),
+        ESC("Esc", "esc", 0xFF1B),
+        DEL("Del", "del", 0xFFFF),
+        INS("Ins", "ins", 0xFF63),
+        BACKSPACE("Backspace", "backspace", 0xFF08),
+        PAGEUP("PageUp", "pageup", 0xFF55),
+        PAGEDOWN("PageDown", "pagedown", 0xFF56),
+        LEFT("Left", "left", 0xFF51),
+        RIGHT("Right", "right", 0xFF53),
+        UP("Up", "up", 0xFF52),
+        DOWN("Down", "down", 0xFF54),
+        TAB("Tab", "tab", 0xFF09),
+        ENTER("Enter", "enter", 0xFF0D),
+        F1("F1", "f1", 0xFFBE),
+        F2("F2", "f2", 0xFFBF),
+        F3("F3", "f3", 0xFFC0),
+        F4("F4", "f4", 0xFFC1),
+        F5("F5", "f5", 0xFFC2),
+        F6("F6", "f6", 0xFFC3),
+        F7("F7", "f7", 0xFFC4),
+        F8("F8", "f8", 0xFFC5),
+        F9("F9", "f9", 0xFFC6),
+        F10("F10", "f10", 0xFFC7),
+        F11("F11", "f11", 0xFFC8),
+        F12("F12", "f12", 0xFFC9);
 
-        final String key;
-        final boolean ctrl;
-        final boolean alt;
-        final boolean shift;
-        final long triggerKeysym;
+        final String label;
+        final String token;
+        final long keysym;
 
-        ChordKey(String key, boolean ctrl, boolean alt, boolean shift, long triggerKeysym) {
-            this.key = key;
-            this.ctrl = ctrl;
-            this.alt = alt;
-            this.shift = shift;
-            this.triggerKeysym = triggerKeysym;
+        TriggerKey(String label, String token, long keysym) {
+            this.label = label;
+            this.token = token;
+            this.keysym = keysym;
         }
 
-        /** Resolves a persisted chord key (case-insensitive); falls back to {@link #NONE}. */
-        static ChordKey fromKey(String key) {
-            if (key != null) {
-                for (ChordKey c : values()) {
-                    if (c.key.equalsIgnoreCase(key)) {
-                        return c;
+        /** Resolves a trigger token (case-insensitive); unknown/"none" -> {@link #NONE}. */
+        static TriggerKey fromToken(String token) {
+            if (token != null) {
+                String t = token.trim().toLowerCase(Locale.ROOT);
+                for (TriggerKey k : values()) {
+                    if (k.token.equals(t)) {
+                        return k;
                     }
                 }
             }
             return NONE;
         }
+    }
+
+    /**
+     * A parsed chord: the ctrl/alt/shift modifier flags plus one {@link TriggerKey}. A chord whose
+     * trigger is {@link TriggerKey#NONE} is "not assigned" and contributes no binding.
+     */
+    static final class Chord {
+        final boolean ctrl;
+        final boolean alt;
+        final boolean shift;
+        final TriggerKey key;
+
+        Chord(boolean ctrl, boolean alt, boolean shift, TriggerKey key) {
+            this.ctrl = ctrl;
+            this.alt = alt;
+            this.shift = shift;
+            this.key = key;
+        }
+
+        boolean isAssigned() {
+            return key != TriggerKey.NONE;
+        }
+
+        /** Canonical persisted string: {@code ctrl+alt+shift+<key>}, or {@code "none"} if unassigned. */
+        String toKey() {
+            if (key == TriggerKey.NONE) {
+                return TriggerKey.NONE.token;
+            }
+            StringBuilder b = new StringBuilder();
+            if (ctrl) b.append("ctrl+");
+            if (alt) b.append("alt+");
+            if (shift) b.append("shift+");
+            b.append(key.token);
+            return b.toString();
+        }
+    }
+
+    /**
+     * Parses a persisted chord string (case-insensitive). Tokens are separated by {@code "+"} (the
+     * canonical form) or {@code "_"} -- the latter for backward compatibility with the older
+     * underscore-style keys ({@code "ctrl_shift_esc"} etc.), which migrate cleanly. Recognizes the
+     * {@code ctrl}/{@code alt}/{@code shift} modifier tokens in any order; the last non-modifier token
+     * is taken as the trigger key. Unknown/empty/"none" input yields an unassigned chord.
+     */
+    static Chord parse(String s) {
+        boolean ctrl = false, alt = false, shift = false;
+        TriggerKey key = TriggerKey.NONE;
+        if (s != null) {
+            for (String part : s.split("[+_]")) {
+                String p = part.trim().toLowerCase(Locale.ROOT);
+                if (p.isEmpty()) {
+                    continue;
+                }
+                switch (p) {
+                    case "ctrl":
+                        ctrl = true;
+                        break;
+                    case "alt":
+                        alt = true;
+                        break;
+                    case "shift":
+                        shift = true;
+                        break;
+                    default:
+                        key = TriggerKey.fromToken(p);
+                        break;
+                }
+            }
+        }
+        return new Chord(ctrl, alt, shift, key);
     }
 
     /** A resolved chord: exact modifier state + trigger keysym -> action. */
@@ -99,18 +182,18 @@ final class InputKeyShortcut {
         final long triggerKeysym;
         final ShortcutAction action;
 
-        ChordBinding(ChordKey chord, ShortcutAction action) {
+        ChordBinding(Chord chord, ShortcutAction action) {
             this.ctrl = chord.ctrl;
             this.alt = chord.alt;
             this.shift = chord.shift;
-            this.triggerKeysym = chord.triggerKeysym;
+            this.triggerKeysym = chord.key.keysym;
             this.action = action;
         }
     }
 
     /**
-     * Builds the active binding list from the per-action chord assignments (each a {@link ChordKey}
-     * persisted key; unknown/"none" contributes no binding).
+     * Builds the active binding list from the per-action chord strings (each a persisted
+     * {@code "+"}-string; unassigned/"none"/unknown-trigger contributes no binding).
      */
     static List<ChordBinding> buildBindings(String recentsChord, String homeChord, String backChord,
             String powerDialogChord, String volumeUpChord, String volumeDownChord, String rotateChord) {
@@ -125,9 +208,9 @@ final class InputKeyShortcut {
         return bindings;
     }
 
-    private static void addBinding(List<ChordBinding> bindings, String chordKey, ShortcutAction action) {
-        ChordKey chord = ChordKey.fromKey(chordKey);
-        if (chord != ChordKey.NONE) {
+    private static void addBinding(List<ChordBinding> bindings, String chordString, ShortcutAction action) {
+        Chord chord = parse(chordString);
+        if (chord.isAssigned()) {
             bindings.add(new ChordBinding(chord, action));
         }
     }

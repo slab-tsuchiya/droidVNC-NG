@@ -358,6 +358,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_recents" />
@@ -366,16 +367,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_recents" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_recents_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_recents_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_recents_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_recents_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -387,6 +417,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_home" />
@@ -395,16 +426,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_home" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_home_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_home_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_home_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_home_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -416,6 +476,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_back" />
@@ -424,16 +485,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_back" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_back_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_back_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_back_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_back_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -445,6 +535,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_power" />
@@ -453,16 +544,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_power" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_power_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_power_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_power_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_power_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -474,6 +594,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_volume_up" />
@@ -482,16 +603,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_volume_up" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_up_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_up_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_up_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_volume_up_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -503,6 +653,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_volume_down" />
@@ -511,16 +662,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_volume_down" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_down_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_down_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_volume_down_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_volume_down_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
             <TableRow
@@ -532,6 +712,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
                     android:layout_column="0"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:hyphenationFrequency="full"
                     android:text="@string/main_activity_settings_chord_rotate" />
@@ -540,16 +721,45 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_column="1"
+                    android:layout_gravity="center_vertical"
                     android:padding="10dp"
                     android:text="@string/main_activity_colon" />
 
-                <Spinner
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_column="2"
-                    android:padding="3dp"
                     android:layout_weight="3"
-                    android:id="@+id/settings_chord_rotate" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_rotate_ctrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_ctrl" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_rotate_alt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_alt" />
+
+                    <CheckBox
+                        android:id="@+id/settings_chord_rotate_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/key_modifier_shift" />
+
+                    <Spinner
+                        android:id="@+id/settings_chord_rotate_key"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="3dp" />
+                </LinearLayout>
             </TableRow>
 
         </TableLayout>

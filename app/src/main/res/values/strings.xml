@@ -57,22 +57,10 @@
     <string name="main_activity_settings_chord_volume_up">Volume up</string>
     <string name="main_activity_settings_chord_volume_down">Volume down</string>
     <string name="main_activity_settings_chord_rotate">Rotate</string>
-    <string-array name="chord_labels">
-        <item>None</item>
-        <item>Home</item>
-        <item>Esc</item>
-        <item>End</item>
-        <item>Ctrl+Esc</item>
-        <item>Ctrl+Shift+Esc</item>
-        <item>Ctrl+Alt+Del</item>
-        <item>Ctrl+Alt+Home</item>
-        <item>Ctrl+Alt+End</item>
-        <item>Ctrl+Alt+Backspace</item>
-        <item>Ctrl+Alt+PageUp</item>
-        <item>Ctrl+Alt+PageDown</item>
-        <item>Alt+Home</item>
-        <item>Alt+Left</item>
-    </string-array>
+    <string name="key_modifier_ctrl">Ctrl</string>
+    <string name="key_modifier_alt">Alt</string>
+    <string name="key_modifier_shift">Shift</string>
+    <string name="main_activity_settings_chord_conflict">%1$s is already assigned to another action</string>
     <string name="main_activity_about">This is droidVNC-NG %1$s. Please note that more features are still being added to droidVNC-NG. You can report any issues and feature requests at https://github.com/bk138/droidVNC-NG/issues</string>
     <string name="main_activity_survey_button">Provide Feedback</string>
     <plurals name="main_service_notification_text_not_listening">

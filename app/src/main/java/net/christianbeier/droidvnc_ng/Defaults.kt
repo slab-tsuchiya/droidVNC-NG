@@ -89,8 +89,9 @@ class Defaults {
         private set
 
     /*
-       Keyboard shortcut chord assignments (one InputKeyShortcut.ChordKey per action). Defaults
-       reproduce the historical hard-coded shortcuts.
+       Keyboard shortcut chord assignments. Each value is an InputKeyShortcut chord string: optional
+       "ctrl+"/"alt+"/"shift+" modifiers plus one trigger key (e.g. "ctrl+alt+del", "esc"), or
+       "none" to disable the action. Defaults reproduce the historical hard-coded shortcuts.
      */
     @EncodeDefault
     var chordRecents = "ctrl+shift+esc"

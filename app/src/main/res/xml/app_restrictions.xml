@@ -66,9 +66,10 @@
         android:restrictionType="integer"
         android:title="@string/main_activity_settings_start_on_boot_delay" />
 
-    <!-- Keyboard shortcut chord assignments; each value is a chord key: none, home, esc, end,
-         ctrl+esc, ctrl+shift+esc, ctrl+alt+del, ctrl+alt+home, ctrl+alt+end, ctrl+alt+backspace,
-         ctrl+alt+pageup, ctrl+alt+pagedown, alt+home, alt+left -->
+    <!-- Keyboard shortcut chord assignments. Each value is a chord string: optional "ctrl+"/"alt+"/
+         "shift+" modifiers plus one trigger key. Trigger keys: home, end, esc, del, ins, backspace,
+         pageup, pagedown, left, right, up, down, tab, enter, f1..f12. "none" disables the action.
+         Examples: "ctrl+shift+esc", "ctrl+alt+del", "esc", "none". -->
     <restriction
         android:defaultValue="ctrl+shift+esc"
         android:key="chordRecents"
