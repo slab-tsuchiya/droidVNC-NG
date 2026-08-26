@@ -187,7 +187,7 @@ public class InputService extends AccessibilityService {
 	 * Active keyboard shortcut chord bindings (per-action assignments), rebuilt from prefs/defaults
 	 * in onServiceConnected() and live-updated from the settings UI. Empty until first built.
 	 */
-	static volatile List<InputKeyShortcut.ChordBinding> sShortcutBindings = java.util.Collections.emptyList();
+	static volatile List<InputKeyShortcut.Binding> sShortcutBindings = java.util.Collections.emptyList();
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -444,11 +444,11 @@ public class InputService extends AccessibilityService {
 	}
 
 	/**
-	 * Executes a {@link InputKeyShortcut.ShortcutAction} resolved from the active chord bindings. All
+	 * Executes a {@link InputKeyShortcut.Action} resolved from the active chord bindings. All
 	 * actions go through the accessibility service / AudioManager / MediaProjectionService and reuse
 	 * the same calls the shortcuts used when they were hard-coded.
 	 */
-	private static void performShortcut(InputKeyShortcut.ShortcutAction action) {
+	private static void performShortcut(InputKeyShortcut.Action action) {
 		if (instance == null) {
 			return;
 		}
@@ -466,10 +466,10 @@ public class InputService extends AccessibilityService {
 				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
 				break;
 			case VOLUME_UP:
-				adjustVolume(AudioManager.ADJUST_RAISE);
+				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
 				break;
 			case VOLUME_DOWN:
-				adjustVolume(AudioManager.ADJUST_LOWER);
+				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
 				break;
 			case ROTATE:
 				instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
@@ -478,14 +478,6 @@ public class InputService extends AccessibilityService {
 			default:
 				break;
 		}
-	}
-
-	/** Adjusts the media/ring volume with the system UI shown, for the volume chord shortcuts. */
-	private static void adjustVolume(int direction) {
-		if (instance == null) {
-			return;
-		}
-		((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(direction, AudioManager.FLAG_SHOW_UI);
 	}
 
     @WorkerThread
@@ -543,9 +535,9 @@ public class InputService extends AccessibilityService {
 				latch debounces client key auto-repeat so a held chord fires only once.
 			 */
 			if(down != 0) {
-				InputKeyShortcut.ShortcutAction shortcut = InputKeyShortcut.match(sShortcutBindings,
+				InputKeyShortcut.Action shortcut = InputKeyShortcut.match(sShortcutBindings,
 						inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
-				if(shortcut != InputKeyShortcut.ShortcutAction.NONE) {
+				if(shortcut != InputKeyShortcut.Action.NONE) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;
 						performShortcut(shortcut);

@@ -22,36 +22,37 @@ import java.util.Locale;
 /**
  * Configurable VNC keyboard shortcuts (see issue #13).
  *
- * <p>The user assigns, per action ({@link ShortcutAction}), one chord: any combination of the
- * {@code ctrl}/{@code alt}/{@code shift} modifiers plus a single {@link TriggerKey}. A chord is
- * stored (in prefs / managed config) as a lower-case {@code "+"}-joined string such as
- * {@code "ctrl+alt+del"} or {@code "esc"}; the token {@code "none"} (or an empty/unknown trigger)
- * means "not assigned". {@link #parse(String)} turns a stored string into a {@link Chord}, and
- * {@link Chord#toKey()} turns it back, so no closed enum of pre-composed chords has to be extended
- * whenever a new modifier/key combination is wanted.
+ * <p>The user assigns, per action ({@link Action}), one chord: any combination of the
+ * {@code ctrl}/{@code alt}/{@code shift} modifiers plus a single trigger key. A chord is stored (in
+ * prefs / managed config) as a lower-case {@code "+"}-joined string such as {@code "ctrl+alt+del"}
+ * or {@code "esc"}; the token {@code "none"} (or an empty/unknown trigger) means "not assigned". The
+ * trigger is written as a {@link Key} token when it is a named key, and otherwise as a raw
+ * {@code "0x<hex>"} X11 keysym, so any keysym can be addressed from managed config without extending
+ * the {@link Key} table. {@link #fromString(String)} turns a stored string into a {@link Chord} and
+ * {@link Chord#toString()} turns it back.
  *
  * <p>This class performs no Android calls of its own -- the caller (InputService) executes the
- * returned {@link ShortcutAction} -- so it stays free of any root/accessibility dependency and is
- * trivially portable. Modifier matching is <em>exact</em>: a binding matches only when its
- * ctrl/alt/shift flags equal the current modifier state, so a bare trigger key and its modified
- * chord never collide.
+ * returned {@link Action} -- so it stays free of any root/accessibility dependency and is trivially
+ * portable. Modifier matching is <em>exact</em>: a binding matches only when its ctrl/alt/shift
+ * flags equal the current modifier state, so a bare trigger key and its modified chord never collide.
  */
 final class InputKeyShortcut {
 
     private InputKeyShortcut() {}
 
     /** Action a chord is assigned to. Execution lives in the caller. */
-    enum ShortcutAction {
+    enum Action {
         NONE, RECENTS, HOME, BACK, POWER_DIALOG, VOLUME_UP, VOLUME_DOWN, ROTATE
     }
 
     /**
-     * The trigger keys offered in the UI's per-action key spinner. Each carries a display label, the
-     * lower-case token used in the persisted {@code "+"}-string, and the RFB/X11 keysym the viewer
-     * sends. {@link #NONE} (keysym 0, which never matches) means "action disabled". Declaration order
-     * is the spinner order.
+     * The named trigger keys offered in the UI's per-action key spinner. Each carries a display
+     * {@code label}, the lower-case {@code token} used in the persisted {@code "+"}-string, and the
+     * RFB/X11 {@code keysym} the viewer sends. {@link #NONE} (keysym 0, which never matches) means
+     * "action disabled". Declaration order is the spinner order. Keys outside this table can still be
+     * used from managed config as a raw {@code "0x<hex>"} keysym.
      */
-    enum TriggerKey {
+    enum Key {
         NONE("None", "none", 0),
         HOME("Home", "home", 0xFF50),
         END("End", "end", 0xFF57),
@@ -84,17 +85,17 @@ final class InputKeyShortcut {
         final String token;
         final long keysym;
 
-        TriggerKey(String label, String token, long keysym) {
+        Key(String label, String token, long keysym) {
             this.label = label;
             this.token = token;
             this.keysym = keysym;
         }
 
         /** Resolves a trigger token (case-insensitive); unknown/"none" -> {@link #NONE}. */
-        static TriggerKey fromToken(String token) {
+        static Key fromToken(String token) {
             if (token != null) {
                 String t = token.trim().toLowerCase(Locale.ROOT);
-                for (TriggerKey k : values()) {
+                for (Key k : values()) {
                     if (k.token.equals(t)) {
                         return k;
                     }
@@ -102,55 +103,70 @@ final class InputKeyShortcut {
             }
             return NONE;
         }
+
+        /** The named key carrying {@code keysym}, or {@code null} if none does (a raw keysym). */
+        static Key fromKeysym(long keysym) {
+            for (Key k : values()) {
+                if (k != NONE && k.keysym == keysym) {
+                    return k;
+                }
+            }
+            return null;
+        }
     }
 
     /**
-     * A parsed chord: the ctrl/alt/shift modifier flags plus one {@link TriggerKey}. A chord whose
-     * trigger is {@link TriggerKey#NONE} is "not assigned" and contributes no binding.
+     * A parsed chord: the ctrl/alt/shift modifier flags plus one trigger keysym. A chord whose
+     * keysym is {@code 0} is "not assigned" and contributes no binding.
      */
     static final class Chord {
         final boolean ctrl;
         final boolean alt;
         final boolean shift;
-        final TriggerKey key;
+        final long keysym;
 
-        Chord(boolean ctrl, boolean alt, boolean shift, TriggerKey key) {
+        Chord(boolean ctrl, boolean alt, boolean shift, long keysym) {
             this.ctrl = ctrl;
             this.alt = alt;
             this.shift = shift;
-            this.key = key;
+            this.keysym = keysym;
         }
 
         boolean isAssigned() {
-            return key != TriggerKey.NONE;
+            return keysym != 0;
         }
 
-        /** Canonical persisted string: {@code ctrl+alt+shift+<key>}, or {@code "none"} if unassigned. */
-        String toKey() {
-            if (key == TriggerKey.NONE) {
-                return TriggerKey.NONE.token;
+        /**
+         * Canonical persisted string: {@code ctrl+alt+shift+<trigger>}, or {@code "none"} if
+         * unassigned. The trigger is a {@link Key} token for a named key, otherwise a raw
+         * {@code "0x<hex>"} keysym.
+         */
+        @Override
+        public String toString() {
+            if (keysym == 0) {
+                return Key.NONE.token;
             }
             StringBuilder b = new StringBuilder();
             if (ctrl) b.append("ctrl+");
             if (alt) b.append("alt+");
             if (shift) b.append("shift+");
-            b.append(key.token);
+            Key named = Key.fromKeysym(keysym);
+            b.append(named != null ? named.token : "0x" + Long.toHexString(keysym));
             return b.toString();
         }
     }
 
     /**
-     * Parses a persisted chord string (case-insensitive). Tokens are separated by {@code "+"} (the
-     * canonical form) or {@code "_"} -- the latter for backward compatibility with the older
-     * underscore-style keys ({@code "ctrl_shift_esc"} etc.), which migrate cleanly. Recognizes the
-     * {@code ctrl}/{@code alt}/{@code shift} modifier tokens in any order; the last non-modifier token
-     * is taken as the trigger key. Unknown/empty/"none" input yields an unassigned chord.
+     * Parses a persisted chord string (case-insensitive). Tokens are separated by {@code "+"};
+     * recognizes the {@code ctrl}/{@code alt}/{@code shift} modifier tokens in any order. The last
+     * non-modifier token is the trigger: a {@link Key} token (e.g. {@code "esc"}) or a raw
+     * {@code "0x<hex>"} X11 keysym. Unknown/empty/"none" input yields an unassigned chord.
      */
-    static Chord parse(String s) {
+    static Chord fromString(String s) {
         boolean ctrl = false, alt = false, shift = false;
-        TriggerKey key = TriggerKey.NONE;
+        long keysym = 0;
         if (s != null) {
-            for (String part : s.split("[+_]")) {
+            for (String part : s.split("\\+")) {
                 String p = part.trim().toLowerCase(Locale.ROOT);
                 if (p.isEmpty()) {
                     continue;
@@ -166,27 +182,42 @@ final class InputKeyShortcut {
                         shift = true;
                         break;
                     default:
-                        key = TriggerKey.fromToken(p);
+                        keysym = parseTrigger(p);
                         break;
                 }
             }
         }
-        return new Chord(ctrl, alt, shift, key);
+        return new Chord(ctrl, alt, shift, keysym);
+    }
+
+    /**
+     * Resolves a trigger token to a keysym: a named {@link Key} token, a raw {@code "0x<hex>"}
+     * keysym, or {@code 0} (unassigned) for anything unrecognized.
+     */
+    private static long parseTrigger(String p) {
+        if (p.startsWith("0x")) {
+            try {
+                return Long.parseLong(p.substring(2), 16);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+        return Key.fromToken(p).keysym;
     }
 
     /** A resolved chord: exact modifier state + trigger keysym -> action. */
-    static final class ChordBinding {
+    static final class Binding {
         final boolean ctrl;
         final boolean alt;
         final boolean shift;
         final long triggerKeysym;
-        final ShortcutAction action;
+        final Action action;
 
-        ChordBinding(Chord chord, ShortcutAction action) {
+        Binding(Chord chord, Action action) {
             this.ctrl = chord.ctrl;
             this.alt = chord.alt;
             this.shift = chord.shift;
-            this.triggerKeysym = chord.key.keysym;
+            this.triggerKeysym = chord.keysym;
             this.action = action;
         }
     }
@@ -195,39 +226,39 @@ final class InputKeyShortcut {
      * Builds the active binding list from the per-action chord strings (each a persisted
      * {@code "+"}-string; unassigned/"none"/unknown-trigger contributes no binding).
      */
-    static List<ChordBinding> buildBindings(String recentsChord, String homeChord, String backChord,
+    static List<Binding> buildBindings(String recentsChord, String homeChord, String backChord,
             String powerDialogChord, String volumeUpChord, String volumeDownChord, String rotateChord) {
-        List<ChordBinding> bindings = new ArrayList<>(7);
-        addBinding(bindings, recentsChord, ShortcutAction.RECENTS);
-        addBinding(bindings, homeChord, ShortcutAction.HOME);
-        addBinding(bindings, backChord, ShortcutAction.BACK);
-        addBinding(bindings, powerDialogChord, ShortcutAction.POWER_DIALOG);
-        addBinding(bindings, volumeUpChord, ShortcutAction.VOLUME_UP);
-        addBinding(bindings, volumeDownChord, ShortcutAction.VOLUME_DOWN);
-        addBinding(bindings, rotateChord, ShortcutAction.ROTATE);
+        List<Binding> bindings = new ArrayList<>(7);
+        addBinding(bindings, recentsChord, Action.RECENTS);
+        addBinding(bindings, homeChord, Action.HOME);
+        addBinding(bindings, backChord, Action.BACK);
+        addBinding(bindings, powerDialogChord, Action.POWER_DIALOG);
+        addBinding(bindings, volumeUpChord, Action.VOLUME_UP);
+        addBinding(bindings, volumeDownChord, Action.VOLUME_DOWN);
+        addBinding(bindings, rotateChord, Action.ROTATE);
         return bindings;
     }
 
-    private static void addBinding(List<ChordBinding> bindings, String chordString, ShortcutAction action) {
-        Chord chord = parse(chordString);
+    private static void addBinding(List<Binding> bindings, String chordString, Action action) {
+        Chord chord = fromString(chordString);
         if (chord.isAssigned()) {
-            bindings.add(new ChordBinding(chord, action));
+            bindings.add(new Binding(chord, action));
         }
     }
 
     /**
      * Returns the action bound to the given (exact) modifier state and trigger keysym, or
-     * {@link ShortcutAction#NONE} if nothing matches.
+     * {@link Action#NONE} if nothing matches.
      */
-    static ShortcutAction match(List<ChordBinding> bindings, boolean ctrl, boolean alt, boolean shift, long keysym) {
+    static Action match(List<Binding> bindings, boolean ctrl, boolean alt, boolean shift, long keysym) {
         if (bindings != null) {
-            for (ChordBinding binding : bindings) {
+            for (Binding binding : bindings) {
                 if (binding.ctrl == ctrl && binding.alt == alt && binding.shift == shift
                         && binding.triggerKeysym == keysym) {
                     return binding.action;
                 }
             }
         }
-        return ShortcutAction.NONE;
+        return Action.NONE;
     }
 }

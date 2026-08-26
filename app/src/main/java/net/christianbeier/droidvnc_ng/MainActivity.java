@@ -119,15 +119,33 @@ public class MainActivity extends AppCompatActivity {
     private final ConcurrentHashMap<Long, String> mNetworkInterfaces = new ConcurrentHashMap<>();
     private Spinner mNetworkInterfaceSpinner;
     private ArrayAdapter<String> mNetworkInterfaceAdapter;
-    // keyboard shortcut chord controls; order matches InputKeyShortcut.buildBindings()
-    private CheckBox[] mChordCtrl;
-    private CheckBox[] mChordAlt;
-    private CheckBox[] mChordShift;
-    private Spinner[] mChordKeySpinners;
-    private String[] mChordPrefKeys;                                   // prefs key per action
-    private String[] mChordSelected;                                  // last-good "+"-string per action
-    private InputKeyShortcut.TriggerKey[] mTriggerKeys;                    // spinner order = enum order
+    // keyboard shortcut rows (one per action); order matches InputKeyShortcut.buildBindings()
+    private ChordRow[] mChordRows;
+    private InputKeyShortcut.Key[] mKeys;   // spinner order = InputKeyShortcut.Key order
     private boolean mChordUpdating;
+
+    /**
+     * One keyboard-shortcut row: the four view ids that make it up, its prefs key and default chord,
+     * plus the resolved controls and last-good canonical chord string. A single array of these
+     * replaces the former six parallel per-action arrays so the columns can't drift out of sync.
+     */
+    private static final class ChordRow {
+        final int ctrlId, altId, shiftId, keyId;
+        final String prefKey;
+        final String defaultChord;
+        CheckBox ctrl, alt, shift;
+        Spinner key;
+        String selected; // last-good canonical chord string ("none" if unassigned)
+
+        ChordRow(int ctrlId, int altId, int shiftId, int keyId, String prefKey, String defaultChord) {
+            this.ctrlId = ctrlId;
+            this.altId = altId;
+            this.shiftId = shiftId;
+            this.keyId = keyId;
+            this.prefKey = prefKey;
+            this.defaultChord = defaultChord;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -204,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
         updateNetworkInterfaceSpinner();
 
         // Wire up the per-action keyboard shortcut chord controls (checkboxes + trigger-key spinner)
-        setupChordControls(prefs);
+        setupKeyShortcutViews(prefs);
 
         Button reverseVNC = findViewById(R.id.reverse_vnc);
         reverseVNC.setOnClickListener(view -> {
@@ -925,87 +943,71 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Wires the per-action keyboard-shortcut chord controls (one row per {@link
-     * InputKeyShortcut.ShortcutAction}). Each row is three modifier checkboxes (Ctrl/Alt/Shift) plus a
-     * trigger-key spinner offering {@link InputKeyShortcut.TriggerKey}. A change recomposes the chord,
+     * Wires the per-action keyboard-shortcut controls (one {@link ChordRow} per {@link
+     * InputKeyShortcut.Action}). Each row is three modifier checkboxes (Ctrl/Alt/Shift) plus a
+     * trigger-key spinner offering the {@link InputKeyShortcut.Key}s. A change recomposes the chord,
      * persists it and live-updates the running InputService; assigning a chord already used by
      * another action is rejected (toast + revert) instead of filtering the choices.
      */
-    private void setupChordControls(final SharedPreferences prefs) {
-        // order must match InputKeyShortcut.buildBindings(): recents, home, back, power, volumeUp, volumeDown, rotate
-        final int[] ctrlIds = {
-                R.id.settings_chord_recents_ctrl, R.id.settings_chord_home_ctrl, R.id.settings_chord_back_ctrl,
-                R.id.settings_chord_power_ctrl, R.id.settings_chord_volume_up_ctrl,
-                R.id.settings_chord_volume_down_ctrl, R.id.settings_chord_rotate_ctrl
+    private void setupKeyShortcutViews(final SharedPreferences prefs) {
+        // one row per action; order must match InputKeyShortcut.buildBindings()
+        mChordRows = new ChordRow[]{
+                new ChordRow(R.id.settings_chord_recents_ctrl, R.id.settings_chord_recents_alt,
+                        R.id.settings_chord_recents_shift, R.id.settings_chord_recents_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, mDefaults.getChordRecents()),
+                new ChordRow(R.id.settings_chord_home_ctrl, R.id.settings_chord_home_alt,
+                        R.id.settings_chord_home_shift, R.id.settings_chord_home_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_HOME, mDefaults.getChordHome()),
+                new ChordRow(R.id.settings_chord_back_ctrl, R.id.settings_chord_back_alt,
+                        R.id.settings_chord_back_shift, R.id.settings_chord_back_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_BACK, mDefaults.getChordBack()),
+                new ChordRow(R.id.settings_chord_power_ctrl, R.id.settings_chord_power_alt,
+                        R.id.settings_chord_power_shift, R.id.settings_chord_power_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_POWER, mDefaults.getChordPower()),
+                new ChordRow(R.id.settings_chord_volume_up_ctrl, R.id.settings_chord_volume_up_alt,
+                        R.id.settings_chord_volume_up_shift, R.id.settings_chord_volume_up_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP, mDefaults.getChordVolumeUp()),
+                new ChordRow(R.id.settings_chord_volume_down_ctrl, R.id.settings_chord_volume_down_alt,
+                        R.id.settings_chord_volume_down_shift, R.id.settings_chord_volume_down_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN, mDefaults.getChordVolumeDown()),
+                new ChordRow(R.id.settings_chord_rotate_ctrl, R.id.settings_chord_rotate_alt,
+                        R.id.settings_chord_rotate_shift, R.id.settings_chord_rotate_key,
+                        Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, mDefaults.getChordRotate())
         };
-        final int[] altIds = {
-                R.id.settings_chord_recents_alt, R.id.settings_chord_home_alt, R.id.settings_chord_back_alt,
-                R.id.settings_chord_power_alt, R.id.settings_chord_volume_up_alt,
-                R.id.settings_chord_volume_down_alt, R.id.settings_chord_rotate_alt
-        };
-        final int[] shiftIds = {
-                R.id.settings_chord_recents_shift, R.id.settings_chord_home_shift, R.id.settings_chord_back_shift,
-                R.id.settings_chord_power_shift, R.id.settings_chord_volume_up_shift,
-                R.id.settings_chord_volume_down_shift, R.id.settings_chord_rotate_shift
-        };
-        final int[] keyIds = {
-                R.id.settings_chord_recents_key, R.id.settings_chord_home_key, R.id.settings_chord_back_key,
-                R.id.settings_chord_power_key, R.id.settings_chord_volume_up_key,
-                R.id.settings_chord_volume_down_key, R.id.settings_chord_rotate_key
-        };
-        mChordPrefKeys = new String[]{
-                Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS,
-                Constants.PREFS_KEY_SETTINGS_CHORD_HOME,
-                Constants.PREFS_KEY_SETTINGS_CHORD_BACK,
-                Constants.PREFS_KEY_SETTINGS_CHORD_POWER,
-                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP,
-                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN,
-                Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE
-        };
-        final String[] defaults = {
-                mDefaults.getChordRecents(), mDefaults.getChordHome(), mDefaults.getChordBack(),
-                mDefaults.getChordPower(), mDefaults.getChordVolumeUp(),
-                mDefaults.getChordVolumeDown(), mDefaults.getChordRotate()
-        };
-        final int n = ctrlIds.length;
 
-        mTriggerKeys = InputKeyShortcut.TriggerKey.values();
-        String[] keyLabels = new String[mTriggerKeys.length];
-        for (int k = 0; k < mTriggerKeys.length; k++) {
-            keyLabels[k] = mTriggerKeys[k].label;
+        mKeys = InputKeyShortcut.Key.values();
+        String[] keyLabels = new String[mKeys.length];
+        for (int k = 0; k < mKeys.length; k++) {
+            keyLabels[k] = mKeys[k].label;
         }
 
-        mChordCtrl = new CheckBox[n];
-        mChordAlt = new CheckBox[n];
-        mChordShift = new CheckBox[n];
-        mChordKeySpinners = new Spinner[n];
-        mChordSelected = new String[n];
-
         mChordUpdating = true; // set initial state without firing the change listeners
-        for (int i = 0; i < n; i++) {
-            mChordCtrl[i] = findViewById(ctrlIds[i]);
-            mChordAlt[i] = findViewById(altIds[i]);
-            mChordShift[i] = findViewById(shiftIds[i]);
-            mChordKeySpinners[i] = findViewById(keyIds[i]);
+        for (int i = 0; i < mChordRows.length; i++) {
+            ChordRow row = mChordRows[i];
+            row.ctrl = findViewById(row.ctrlId);
+            row.alt = findViewById(row.altId);
+            row.shift = findViewById(row.shiftId);
+            row.key = findViewById(row.keyId);
 
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, keyLabels);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            mChordKeySpinners[i].setAdapter(adapter);
+            row.key.setAdapter(adapter);
 
-            InputKeyShortcut.Chord chord = InputKeyShortcut.parse(prefs.getString(mChordPrefKeys[i], defaults[i]));
-            mChordSelected[i] = chord.toKey();
+            InputKeyShortcut.Chord chord = InputKeyShortcut.fromString(prefs.getString(row.prefKey, row.defaultChord));
+            row.selected = chord.toString();
             applyChordToRow(i, chord);
         }
         mChordUpdating = false;
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < mChordRows.length; i++) {
             final int idx = i;
+            ChordRow row = mChordRows[i];
             CompoundButton.OnCheckedChangeListener cbListener =
                     (buttonView, isChecked) -> onChordChanged(idx);
-            mChordCtrl[i].setOnCheckedChangeListener(cbListener);
-            mChordAlt[i].setOnCheckedChangeListener(cbListener);
-            mChordShift[i].setOnCheckedChangeListener(cbListener);
-            mChordKeySpinners[i].setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            row.ctrl.setOnCheckedChangeListener(cbListener);
+            row.alt.setOnCheckedChangeListener(cbListener);
+            row.shift.setOnCheckedChangeListener(cbListener);
+            row.key.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     onChordChanged(idx);
@@ -1018,24 +1020,26 @@ public class MainActivity extends AppCompatActivity {
 
     /** Sets a row's three modifier checkboxes and key spinner from a parsed chord. Mute listeners first. */
     private void applyChordToRow(int idx, InputKeyShortcut.Chord chord) {
-        mChordCtrl[idx].setChecked(chord.ctrl);
-        mChordAlt[idx].setChecked(chord.alt);
-        mChordShift[idx].setChecked(chord.shift);
-        int pos = 0;
-        for (int k = 0; k < mTriggerKeys.length; k++) {
-            if (mTriggerKeys[k] == chord.key) {
+        ChordRow row = mChordRows[idx];
+        row.ctrl.setChecked(chord.ctrl);
+        row.alt.setChecked(chord.alt);
+        row.shift.setChecked(chord.shift);
+        int pos = 0; // a keysym not in the table (a raw one set via managed config) falls back to "None"
+        for (int k = 0; k < mKeys.length; k++) {
+            if (mKeys[k].keysym == chord.keysym) {
                 pos = k;
                 break;
             }
         }
-        mChordKeySpinners[idx].setSelection(pos);
+        row.key.setSelection(pos);
     }
 
     /** Reads a row's controls into a {@link InputKeyShortcut.Chord}. */
     private InputKeyShortcut.Chord readChordFromRow(int idx) {
-        InputKeyShortcut.TriggerKey key = mTriggerKeys[mChordKeySpinners[idx].getSelectedItemPosition()];
+        ChordRow row = mChordRows[idx];
+        InputKeyShortcut.Key key = mKeys[row.key.getSelectedItemPosition()];
         return new InputKeyShortcut.Chord(
-                mChordCtrl[idx].isChecked(), mChordAlt[idx].isChecked(), mChordShift[idx].isChecked(), key);
+                row.ctrl.isChecked(), row.alt.isChecked(), row.shift.isChecked(), key.keysym);
     }
 
     /**
@@ -1047,29 +1051,29 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         InputKeyShortcut.Chord chord = readChordFromRow(idx);
-        String key = chord.toKey();
-        if (key.equals(mChordSelected[idx])) {
+        String key = chord.toString();
+        if (key.equals(mChordRows[idx].selected)) {
             return; // no actual change (e.g. a re-layout or unchanged re-selection callback)
         }
         // mutual exclusion: an assigned chord may not equal another action's assigned chord
         if (chord.isAssigned()) {
-            for (int j = 0; j < mChordSelected.length; j++) {
-                if (j != idx && key.equals(mChordSelected[j])) {
+            for (int j = 0; j < mChordRows.length; j++) {
+                if (j != idx && key.equals(mChordRows[j].selected)) {
                     Toast.makeText(this, getString(R.string.main_activity_settings_chord_conflict, key),
                             Toast.LENGTH_SHORT).show();
                     mChordUpdating = true;
-                    applyChordToRow(idx, InputKeyShortcut.parse(mChordSelected[idx])); // revert to last good
+                    applyChordToRow(idx, InputKeyShortcut.fromString(mChordRows[idx].selected)); // revert to last good
                     mChordUpdating = false;
                     return;
                 }
             }
         }
-        mChordSelected[idx] = key;
-        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(mChordPrefKeys[idx], key).apply();
+        mChordRows[idx].selected = key;
+        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(mChordRows[idx].prefKey, key).apply();
         // live-update the running input service
         InputService.sShortcutBindings = InputKeyShortcut.buildBindings(
-                mChordSelected[0], mChordSelected[1], mChordSelected[2], mChordSelected[3],
-                mChordSelected[4], mChordSelected[5], mChordSelected[6]);
+                mChordRows[0].selected, mChordRows[1].selected, mChordRows[2].selected, mChordRows[3].selected,
+                mChordRows[4].selected, mChordRows[5].selected, mChordRows[6].selected);
     }
 
     private void updateNetworkInterfaceSpinner() {
