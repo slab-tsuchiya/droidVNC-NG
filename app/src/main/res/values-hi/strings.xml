@@ -47,7 +47,7 @@
     <string name="main_activity_repeater_vnc_fail">%1$s से ID %2$s के साथ कनेक्शन असफल</string>
     <string name="main_activity_repeater_vnc_input_missing">होस्ट और/या ID गायब है</string>
     <string name="main_activity_reconnect_tries_hint">अधिकतम पुन: कनेक्ट प्रयास</string>
-    <string name="main_activity_special_key_reference">VNC व्यूअर से, <b>Ctrl-Shift-Esc</b> \'हाल के ऐप्स\' अवलोकन को ट्रिगर करता है, <b>Home/Pos1</b> होम बटन के रूप में कार्य करता है, <b>End</b> पावर बटन के रूप में कार्य करता है, <b>Escape</b> बैक बटन के रूप में कार्य करता है, <b>Ctrl-Alt-PageUp/PageDown</b> ऑडियो वॉल्यूम बदलता है.</string>
+    <string name="main_activity_special_key_reference">VNC व्यूअर से, ऊपर असाइन किए गए कीबोर्ड शॉर्टकट अपनी संबंधित Android क्रियाएँ चलाते हैं।</string>
     <string name="main_activity_settings_key_shortcuts">कीबोर्ड शॉर्टकट</string>
     <string name="main_activity_settings_chord_recents">हाल के ऐप्स</string>
     <string name="main_activity_settings_chord_home">होम</string>

@@ -47,7 +47,7 @@
     <string name="main_activity_repeater_vnc_fail">Не удалось подключиться к %1$s с идентификатором %2$s</string>
     <string name="main_activity_repeater_vnc_input_missing">Хост и/или идентификатор отсутствуют</string>
     <string name="main_activity_reconnect_tries_hint">Макс. попыток переподключения</string>
-    <string name="main_activity_special_key_reference">В окне просмотра VNC сочетание клавиш <b>Ctrl-Shift-Esc</b> открывает обзор «Недавние приложения», <b>Home/Pos1</b> действует как кнопка «Домой», <b>End</b> действует как кнопка питания, <b>Escape</b> действует как кнопка «Назад», <b>Ctrl-Alt-PageUp/PageDown</b> изменяет громкость звука.</string>
+    <string name="main_activity_special_key_reference">В клиенте VNC назначенные выше сочетания клавиш выполняют соответствующие действия Android.</string>
     <string name="main_activity_settings_key_shortcuts">Сочетания клавиш</string>
     <string name="main_activity_settings_chord_recents">Недавние приложения</string>
     <string name="main_activity_settings_chord_home">Домой</string>

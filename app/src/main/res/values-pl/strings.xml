@@ -45,7 +45,7 @@
     <string name="main_activity_repeater_vnc_fail">Połączenie z %1$s z ID %2$s nie powiodło się</string>
     <string name="main_activity_repeater_vnc_input_missing">Brakuje hosta i/lub ID</string>
     <string name="main_activity_reconnect_tries_hint">Maks. liczba prób ponownego połączenia</string>
-    <string name="main_activity_special_key_reference">Z klienta VNC, <b>Ctrl-Shift-Esc</b> wywołuje podgląd "Ostatnie aplikacje", <b>Home/Pos1</b> działa jako przycisk Home, <b>End</b> działa jako przycisk zasilania, <b>Escape</b> działa jako przycisk Wstecz, <b>Ctrl-Alt-PageUp/PageDown</b> zmienia głośność dźwięku.</string>
+    <string name="main_activity_special_key_reference">W kliencie VNC skróty klawiszowe przypisane powyżej wyzwalają odpowiadające im akcje Androida.</string>
     <string name="main_activity_settings_key_shortcuts">Skróty klawiszowe</string>
     <string name="main_activity_settings_chord_recents">Ostatnie aplikacje</string>
     <string name="main_activity_settings_chord_home">Ekran główny</string>
