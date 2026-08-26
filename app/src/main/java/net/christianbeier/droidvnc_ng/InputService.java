@@ -184,10 +184,11 @@ public class InputService extends AccessibilityService {
 	static float scaling;
 	static boolean isInputEnabled;
 	/**
-	 * Active keyboard shortcut chord bindings (per-action assignments), rebuilt from prefs/defaults
-	 * in onServiceConnected() and live-updated from the settings UI. Empty until first built.
+	 * Active keyboard shortcut bindings (per-action chord assignments), rebuilt from prefs/defaults
+	 * in onServiceConnected() and live-updated from the settings UI via {@link #updateShortcuts}.
+	 * Instance-scoped: it is only consulted from onKeyEvent(), which runs while this service is alive.
 	 */
-	static volatile List<InputKeyShortcut.Binding> sShortcutBindings = java.util.Collections.emptyList();
+	private volatile InputKeyShortcutManager mShortcuts = new InputKeyShortcutManager(java.util.Collections.emptyList());
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -256,7 +257,7 @@ public class InputService extends AccessibilityService {
 		instance = this;
 		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
 		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
-		sShortcutBindings = InputKeyShortcut.buildBindings(
+		mShortcuts = InputKeyShortcutManager.from(
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, new Defaults(this).getChordRecents()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_HOME, new Defaults(this).getChordHome()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_BACK, new Defaults(this).getChordBack()),
@@ -444,11 +445,11 @@ public class InputService extends AccessibilityService {
 	}
 
 	/**
-	 * Executes a {@link InputKeyShortcut.Action} resolved from the active chord bindings. All
-	 * actions go through the accessibility service / AudioManager / MediaProjectionService and reuse
-	 * the same calls the shortcuts used when they were hard-coded.
+	 * Executes an {@link Action} resolved from the active chord bindings. All actions go through the
+	 * accessibility service / AudioManager / MediaProjectionService and reuse the same calls the
+	 * shortcuts used when they were hard-coded.
 	 */
-	private static void performShortcut(InputKeyShortcut.Action action) {
+	private static void performShortcut(Action action) {
 		if (instance == null) {
 			return;
 		}
@@ -477,6 +478,19 @@ public class InputService extends AccessibilityService {
 			case NONE:
 			default:
 				break;
+		}
+	}
+
+	/**
+	 * Live-updates the running service's shortcut bindings from the settings UI. A no-op when the
+	 * service is not connected -- there is nothing to consult the bindings then, and
+	 * onServiceConnected() rebuilds them from prefs on the next connect.
+	 */
+	static void updateShortcuts(String recents, String home, String back, String powerDialog,
+			String volumeUp, String volumeDown, String rotate) {
+		InputService self = instance;
+		if (self != null) {
+			self.mShortcuts = InputKeyShortcutManager.from(recents, home, back, powerDialog, volumeUp, volumeDown, rotate);
 		}
 	}
 
@@ -530,14 +544,16 @@ public class InputService extends AccessibilityService {
 
 			/*
 				Configurable keyboard shortcuts (issue #13): match the current modifier state and this
-				key against the chord the user assigned to each action (see InputKeyShortcut / Settings). A
-				match is consumed here -- it is not also injected below -- and the heldShortcutTrigger
-				latch debounces client key auto-repeat so a held chord fires only once.
+				key against the chord the user assigned to each action (see InputKeyShortcutManager /
+				Settings). A match is consumed here -- it is not also injected below -- and the
+				heldShortcutTrigger latch debounces client key auto-repeat so a held chord fires once.
 			 */
 			if(down != 0) {
-				InputKeyShortcut.Action shortcut = InputKeyShortcut.match(sShortcutBindings,
-						inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
-				if(shortcut != InputKeyShortcut.Action.NONE) {
+				InputService self = instance;
+				Action shortcut = self != null
+						? self.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym)
+						: Action.NONE;
+				if(shortcut != Action.NONE) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;
 						performShortcut(shortcut);

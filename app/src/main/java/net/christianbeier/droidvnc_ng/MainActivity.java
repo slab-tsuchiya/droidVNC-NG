@@ -119,9 +119,9 @@ public class MainActivity extends AppCompatActivity {
     private final ConcurrentHashMap<Long, String> mNetworkInterfaces = new ConcurrentHashMap<>();
     private Spinner mNetworkInterfaceSpinner;
     private ArrayAdapter<String> mNetworkInterfaceAdapter;
-    // keyboard shortcut rows (one per action); order matches InputKeyShortcut.buildBindings()
+    // keyboard shortcut rows (one per action); order matches InputKeyShortcutManager.from()
     private ChordRow[] mChordRows;
-    private InputKeyShortcut.Key[] mKeys;   // spinner order = InputKeyShortcut.Key order
+    private Key[] mKeys;   // spinner order = Key order
     private boolean mChordUpdating;
 
     /**
@@ -943,14 +943,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Wires the per-action keyboard-shortcut controls (one {@link ChordRow} per {@link
-     * InputKeyShortcut.Action}). Each row is three modifier checkboxes (Ctrl/Alt/Shift) plus a
-     * trigger-key spinner offering the {@link InputKeyShortcut.Key}s. A change recomposes the chord,
-     * persists it and live-updates the running InputService; assigning a chord already used by
-     * another action is rejected (toast + revert) instead of filtering the choices.
+     * Wires the per-action keyboard-shortcut controls (one {@link ChordRow} per {@link Action}). Each
+     * row is three modifier checkboxes (Ctrl/Alt/Shift) plus a trigger-key spinner offering the
+     * {@link Key}s. A change recomposes the chord, persists it and live-updates the running
+     * InputService; assigning a chord already used by another action is rejected (toast + revert)
+     * instead of filtering the choices.
      */
     private void setupKeyShortcutViews(final SharedPreferences prefs) {
-        // one row per action; order must match InputKeyShortcut.buildBindings()
+        // one row per action; order must match InputKeyShortcutManager.from()
         mChordRows = new ChordRow[]{
                 new ChordRow(R.id.settings_chord_recents_ctrl, R.id.settings_chord_recents_alt,
                         R.id.settings_chord_recents_shift, R.id.settings_chord_recents_key,
@@ -975,10 +975,10 @@ public class MainActivity extends AppCompatActivity {
                         Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, mDefaults.getChordRotate())
         };
 
-        mKeys = InputKeyShortcut.Key.values();
+        mKeys = Key.values();
         String[] keyLabels = new String[mKeys.length];
         for (int k = 0; k < mKeys.length; k++) {
-            keyLabels[k] = mKeys[k].label;
+            keyLabels[k] = mKeys[k].getLabel();
         }
 
         mChordUpdating = true; // set initial state without firing the change listeners
@@ -993,7 +993,7 @@ public class MainActivity extends AppCompatActivity {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             row.key.setAdapter(adapter);
 
-            InputKeyShortcut.Chord chord = InputKeyShortcut.fromString(prefs.getString(row.prefKey, row.defaultChord));
+            Chord chord = Chord.fromString(prefs.getString(row.prefKey, row.defaultChord));
             row.selected = chord.toString();
             applyChordToRow(i, chord);
         }
@@ -1019,14 +1019,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** Sets a row's three modifier checkboxes and key spinner from a parsed chord. Mute listeners first. */
-    private void applyChordToRow(int idx, InputKeyShortcut.Chord chord) {
+    private void applyChordToRow(int idx, Chord chord) {
         ChordRow row = mChordRows[idx];
-        row.ctrl.setChecked(chord.ctrl);
-        row.alt.setChecked(chord.alt);
-        row.shift.setChecked(chord.shift);
+        row.ctrl.setChecked(chord.getCtrl());
+        row.alt.setChecked(chord.getAlt());
+        row.shift.setChecked(chord.getShift());
         int pos = 0; // a keysym not in the table (a raw one set via managed config) falls back to "None"
         for (int k = 0; k < mKeys.length; k++) {
-            if (mKeys[k].keysym == chord.keysym) {
+            if (mKeys[k].getKeysym() == chord.getKeysym()) {
                 pos = k;
                 break;
             }
@@ -1034,12 +1034,12 @@ public class MainActivity extends AppCompatActivity {
         row.key.setSelection(pos);
     }
 
-    /** Reads a row's controls into a {@link InputKeyShortcut.Chord}. */
-    private InputKeyShortcut.Chord readChordFromRow(int idx) {
+    /** Reads a row's controls into a {@link Chord}. */
+    private Chord readChordFromRow(int idx) {
         ChordRow row = mChordRows[idx];
-        InputKeyShortcut.Key key = mKeys[row.key.getSelectedItemPosition()];
-        return new InputKeyShortcut.Chord(
-                row.ctrl.isChecked(), row.alt.isChecked(), row.shift.isChecked(), key.keysym);
+        Key key = mKeys[row.key.getSelectedItemPosition()];
+        return new Chord(
+                row.ctrl.isChecked(), row.alt.isChecked(), row.shift.isChecked(), key.getKeysym());
     }
 
     /**
@@ -1050,7 +1050,7 @@ public class MainActivity extends AppCompatActivity {
         if (mChordUpdating) {
             return;
         }
-        InputKeyShortcut.Chord chord = readChordFromRow(idx);
+        Chord chord = readChordFromRow(idx);
         String key = chord.toString();
         if (key.equals(mChordRows[idx].selected)) {
             return; // no actual change (e.g. a re-layout or unchanged re-selection callback)
@@ -1062,7 +1062,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, getString(R.string.main_activity_settings_chord_conflict, key),
                             Toast.LENGTH_SHORT).show();
                     mChordUpdating = true;
-                    applyChordToRow(idx, InputKeyShortcut.fromString(mChordRows[idx].selected)); // revert to last good
+                    applyChordToRow(idx, Chord.fromString(mChordRows[idx].selected)); // revert to last good
                     mChordUpdating = false;
                     return;
                 }
@@ -1071,7 +1071,7 @@ public class MainActivity extends AppCompatActivity {
         mChordRows[idx].selected = key;
         PreferenceManager.getDefaultSharedPreferences(this).edit().putString(mChordRows[idx].prefKey, key).apply();
         // live-update the running input service
-        InputService.sShortcutBindings = InputKeyShortcut.buildBindings(
+        InputService.updateShortcuts(
                 mChordRows[0].selected, mChordRows[1].selected, mChordRows[2].selected, mChordRows[3].selected,
                 mChordRows[4].selected, mChordRows[5].selected, mChordRows[6].selected);
     }
