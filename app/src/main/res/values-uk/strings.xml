@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">Текст не поділено, сервер не працює.</string>
     <string name="share_activtiy_no_clients_connected">Текст не поділено, немає підключених клієнтів.</string>
     <string name="share_activtiy_shared_successfully">Текст поділено з буферами обміну всіх підключених клієнтів.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Немає</string>
 </resources>

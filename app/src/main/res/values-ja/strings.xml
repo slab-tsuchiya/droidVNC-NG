@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">テキストは共有されていません。サーバーは実行されていません。</string>
     <string name="share_activtiy_no_clients_connected">テキストは共有されていません。クライアントが接続されていません。</string>
     <string name="share_activtiy_shared_successfully">接続されているすべてのクライアントのクリップボードにテキストを共有しました。</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">なし</string>
 </resources>

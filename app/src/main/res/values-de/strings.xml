@@ -93,4 +93,14 @@
     <string name="share_activtiy_server_not_running">Text nicht geteilt, Server läuft nicht.</string>
     <string name="share_activtiy_no_clients_connected">Text nicht geteilt, keine Clients verbunden.</string>
     <string name="share_activtiy_shared_successfully">Text in Zwischenablage aller verbundenen Clients geteilt.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Keine</string>
+    <string name="key_modifier_ctrl">Strg</string>
+    <string name="key_modifier_shift">Umschalt</string>
+    <string name="key_label_home">Pos1</string>
+    <string name="key_label_end">Ende</string>
+    <string name="key_label_del">Entf</string>
+    <string name="key_label_ins">Einfg</string>
+    <string name="key_label_pageup">Bild auf</string>
+    <string name="key_label_pagedown">Bild ab</string>
 </resources>

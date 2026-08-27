@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">텍스트 공유 실패, 서버가 실행 중이 아닙니다.</string>
     <string name="share_activtiy_no_clients_connected">텍스트 공유 실패, 연결된 클라이언트가 없습니다.</string>
     <string name="share_activtiy_shared_successfully">텍스트를 모든 연결된 클라이언트의 클립보드에 공유했습니다.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">없음</string>
 </resources>

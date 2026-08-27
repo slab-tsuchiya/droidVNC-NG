@@ -94,4 +94,6 @@
     <string name="share_activtiy_server_not_running">未共享文本，伺服器未運行。</string>
     <string name="share_activtiy_no_clients_connected">未共享文本，未連接客戶端。</string>
     <string name="share_activtiy_shared_successfully">已將文本共享到所有連接客戶端的剪貼板。</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">無</string>
 </resources>

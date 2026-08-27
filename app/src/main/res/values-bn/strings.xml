@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">টেক্সট শেয়ার করা হয়নি, সার্ভার চালু নয়</string>
     <string name="share_activtiy_no_clients_connected">টেক্সট শেয়ার করা হয়নি, কোন ক্লায়েন্ট সংযুক্ত নয়</string>
     <string name="share_activtiy_shared_successfully">টেক্সট সব সংযুক্ত ক্লায়েন্টের ক্লিপবোর্ডে শেয়ার করা হয়েছে</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">কোনোটিই নয়</string>
 </resources>

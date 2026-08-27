@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">Текст не передан, сервер не запущен.</string>
     <string name="share_activtiy_no_clients_connected">Текст не передан, нет подключенных клиентов.</string>
     <string name="share_activtiy_shared_successfully">Текст передан в буферы обмена всех подключенных клиентов.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Нет</string>
 </resources>

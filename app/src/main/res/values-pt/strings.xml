@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">Texto não partilhado, o servidor não está em execução.</string>
     <string name="share_activtiy_no_clients_connected">Texto não partilhado, sem cliente ligado.</string>
     <string name="share_activtiy_shared_successfully">Texto partilhado nas pranchetas de todos os clientes ligados.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Nenhum</string>
 </resources>

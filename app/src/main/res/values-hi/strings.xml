@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">साझा नहीं किया गया, सर्वर चालू नहीं है।</string>
     <string name="share_activtiy_no_clients_connected">साझा नहीं किया गया, कोई क्लाइंट कनेक्टेड नहीं है।</string>
     <string name="share_activtiy_shared_successfully">सभी कनेक्टेड क्लाइंट्स के क्लिपबोर्ड पर साझा किया गया।</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">कोई नहीं</string>
 </resources>

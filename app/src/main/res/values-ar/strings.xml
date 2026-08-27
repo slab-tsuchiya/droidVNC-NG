@@ -93,4 +93,6 @@
     <string name="share_activtiy_server_not_running">لم يتم مشاركة النص، الخادم غير قيد التشغيل.</string>
     <string name="share_activtiy_no_clients_connected">لم يتم مشاركة النص، لا يوجد عملاء متصلون.</string>
     <string name="share_activtiy_shared_successfully">تم مشاركة النص إلى الحافظة لجميع العملاء المتصلين.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">بلا</string>
 </resources>

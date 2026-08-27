@@ -95,4 +95,6 @@
     <string name="share_activtiy_server_not_running">Tekst nieudostępniony, serwer nie działa.</string>
     <string name="share_activtiy_no_clients_connected">Tekst nieudostępniony, żaden klient nie jest podłączony.</string>
     <string name="share_activtiy_shared_successfully">Tekst udostępniony do schowków wszystkich podłączonych klientów.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Brak</string>
 </resources>

@@ -93,4 +93,7 @@
     <string name="share_activtiy_server_not_running">Texte non partagé, le serveur n\'est pas en cours d\'exécution.</string>
     <string name="share_activtiy_no_clients_connected">Texte non partagé, aucun client connecté.</string>
     <string name="share_activtiy_shared_successfully">Texte partagé dans les presse-papiers de tous les clients connectés.</string>
+    <!-- Keyboard-shortcut labels: "None" plus keycap legends that differ from English (see values/strings.xml) -->
+    <string name="key_label_none">Aucune</string>
+    <string name="key_modifier_shift">Maj</string>
 </resources>
