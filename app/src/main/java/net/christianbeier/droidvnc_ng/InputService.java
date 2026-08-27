@@ -47,7 +47,6 @@ import androidx.annotation.WorkerThread;
 import androidx.preference.PreferenceManager;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -186,9 +185,11 @@ public class InputService extends AccessibilityService {
 	/**
 	 * Active keyboard shortcut bindings (per-action chord assignments), rebuilt from prefs/defaults
 	 * in onServiceConnected() and live-updated from the settings UI via {@link #updateShortcuts}.
-	 * Instance-scoped: it is only consulted from onKeyEvent(), which runs while this service is alive.
+	 * volatile: written on the main thread (onServiceConnected()/updateShortcuts()) and read on the
+	 * VNC worker thread in onKeyEvent(). onServiceConnected() assigns it before publishing
+	 * {@code instance}, so it is non-null whenever onKeyEvent() observes a non-null instance.
 	 */
-	private volatile InputKeyShortcutManager mShortcuts = new InputKeyShortcutManager(java.util.Collections.emptyList());
+	private volatile InputKeyShortcutManager mShortcuts;
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -254,9 +255,8 @@ public class InputService extends AccessibilityService {
 	public void onServiceConnected()
 	{
 		super.onServiceConnected();
-		instance = this;
-		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
-		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
+		// Build the shortcut bindings before publishing `instance`, so onKeyEvent() (VNC worker
+		// thread) never sees a non-null instance whose mShortcuts is not yet assigned.
 		mShortcuts = InputKeyShortcutManager.from(
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, new Defaults(this).getChordRecents()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_HOME, new Defaults(this).getChordHome()),
@@ -265,6 +265,9 @@ public class InputService extends AccessibilityService {
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP, new Defaults(this).getChordVolumeUp()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN, new Defaults(this).getChordVolumeDown()),
 				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, new Defaults(this).getChordRotate()));
+		instance = this;
+		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
+		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
 		mMainHandler = new Handler(instance.getMainLooper());
 		// (re-)add any InputContext's InputPointerViews
 		for (InputContext inputContext : inputContexts.values()) {
@@ -488,9 +491,8 @@ public class InputService extends AccessibilityService {
 	 */
 	static void updateShortcuts(String recents, String home, String back, String powerDialog,
 			String volumeUp, String volumeDown, String rotate) {
-		InputService self = instance;
-		if (self != null) {
-			self.mShortcuts = InputKeyShortcutManager.from(recents, home, back, powerDialog, volumeUp, volumeDown, rotate);
+		if (instance != null) {
+			instance.mShortcuts = InputKeyShortcutManager.from(recents, home, back, powerDialog, volumeUp, volumeDown, rotate);
 		}
 	}
 
@@ -549,10 +551,7 @@ public class InputService extends AccessibilityService {
 				heldShortcutTrigger latch debounces client key auto-repeat so a held chord fires once.
 			 */
 			if(down != 0) {
-				InputService self = instance;
-				Action shortcut = self != null
-						? self.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym)
-						: Action.NONE;
+				Action shortcut = instance.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
 				if(shortcut != Action.NONE) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;

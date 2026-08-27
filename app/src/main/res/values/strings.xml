@@ -57,11 +57,40 @@
     <string name="main_activity_settings_chord_volume_up">Volume up</string>
     <string name="main_activity_settings_chord_volume_down">Volume down</string>
     <string name="main_activity_settings_chord_rotate">Rotate</string>
-    <!-- Modifier names (Ctrl/Alt/Shift) and trigger key names (Home, End, Esc, F1...) are
-         intentionally left untranslated as they match physical keycaps. -->
+    <!-- Keyboard-shortcut labels. Modifier names (Ctrl/Alt/Shift) and the trigger-key names below
+         are physical keycap legends: English is the default and a locale overrides one only where the
+         real keycap differs (e.g. German Strg / Pos1 / Entf). "None" (key_label_none) is UI text and
+         is translated in every locale. F-keys and most legends read the same everywhere. -->
     <string name="key_modifier_ctrl">Ctrl</string>
     <string name="key_modifier_alt">Alt</string>
     <string name="key_modifier_shift">Shift</string>
+    <string name="key_label_none">None</string>
+    <string name="key_label_home">Home</string>
+    <string name="key_label_end">End</string>
+    <string name="key_label_esc">Esc</string>
+    <string name="key_label_del">Del</string>
+    <string name="key_label_ins">Ins</string>
+    <string name="key_label_backspace">Backspace</string>
+    <string name="key_label_pageup">PageUp</string>
+    <string name="key_label_pagedown">PageDown</string>
+    <string name="key_label_left">Left</string>
+    <string name="key_label_right">Right</string>
+    <string name="key_label_up">Up</string>
+    <string name="key_label_down">Down</string>
+    <string name="key_label_tab">Tab</string>
+    <string name="key_label_enter">Enter</string>
+    <string name="key_label_f1">F1</string>
+    <string name="key_label_f2">F2</string>
+    <string name="key_label_f3">F3</string>
+    <string name="key_label_f4">F4</string>
+    <string name="key_label_f5">F5</string>
+    <string name="key_label_f6">F6</string>
+    <string name="key_label_f7">F7</string>
+    <string name="key_label_f8">F8</string>
+    <string name="key_label_f9">F9</string>
+    <string name="key_label_f10">F10</string>
+    <string name="key_label_f11">F11</string>
+    <string name="key_label_f12">F12</string>
     <string name="main_activity_settings_chord_conflict">%1$s is already assigned to another action</string>
     <string name="main_activity_about">This is droidVNC-NG %1$s. Please note that more features are still being added to droidVNC-NG. You can report any issues and feature requests at https://github.com/bk138/droidVNC-NG/issues</string>
     <string name="main_activity_survey_button">Provide Feedback</string>
