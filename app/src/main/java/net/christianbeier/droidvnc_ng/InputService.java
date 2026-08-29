@@ -453,34 +453,38 @@ public class InputService extends AccessibilityService {
 	 * shortcuts used when they were hard-coded.
 	 */
 	private static void performShortcut(Action action) {
-		if (instance == null) {
-			return;
-		}
-		switch (action) {
-			case RECENTS:
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-				break;
-			case HOME:
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-				break;
-			case BACK:
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-				break;
-			case POWER_DIALOG:
-				instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
-				break;
-			case VOLUME_UP:
-				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
-				break;
-			case VOLUME_DOWN:
-				((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
-				break;
-			case ROTATE:
-				instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
-				break;
-			case NONE:
-			default:
-				break;
+		// instance is a static mutated from other threads, so guard against it racing to null
+		// between here and the dereferences below rather than a pre-check that can go stale.
+		try {
+			switch (action) {
+				case RECENTS:
+					instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+					break;
+				case HOME:
+					instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+					break;
+				case BACK:
+					instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+					break;
+				case POWER_DIALOG:
+					instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+					break;
+				case VOLUME_UP:
+					((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
+					break;
+				case VOLUME_DOWN:
+					((AudioManager) instance.getSystemService(Context.AUDIO_SERVICE)).adjustVolume(AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
+					break;
+				case ROTATE:
+					instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
+					break;
+				case NONE:
+				default:
+					break;
+			}
+		} catch (Exception e) {
+			// instance probably null
+			Log.e(TAG, "performShortcut: failed: " + e);
 		}
 	}
 
@@ -491,8 +495,13 @@ public class InputService extends AccessibilityService {
 	 */
 	static void updateShortcuts(String recents, String home, String back, String powerDialog,
 			String volumeUp, String volumeDown, String rotate) {
-		if (instance != null) {
+		// instance can race to null between a check and the assignment, so let the deref throw
+		// instead; onServiceConnected() rebuilds mShortcuts from prefs on the next connect anyway.
+		try {
 			instance.mShortcuts = InputKeyShortcutManager.from(recents, home, back, powerDialog, volumeUp, volumeDown, rotate);
+		} catch (Exception e) {
+			// instance probably null
+			Log.e(TAG, "updateShortcuts: failed: " + e);
 		}
 	}
 
