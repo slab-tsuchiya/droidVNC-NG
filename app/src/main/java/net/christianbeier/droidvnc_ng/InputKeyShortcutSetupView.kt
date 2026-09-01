@@ -53,7 +53,6 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
         var selected: String = ""
     }
 
-    private val keys = Key.entries
     private val rows = ArrayList<Row>(SPECS.size)
 
     /** True while programmatically setting control state, so the change listeners stay quiet. */
@@ -69,7 +68,7 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
     private fun setupRows() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val defaults = Defaults(context)
-        val keyLabels = keys.map { context.getString(labelResFor(it)) }.toTypedArray()
+        val keyLabels = KEY_CHOICES.map { context.getString(it.labelRes) }.toTypedArray()
 
         // resolve each row and set its initial state with the listeners still detached
         updating = true
@@ -113,12 +112,15 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
         row.ctrl.isChecked = chord.ctrl
         row.alt.isChecked = chord.alt
         row.shift.isChecked = chord.shift
-        row.key.setSelection(keys.indexOf(chord.key).coerceAtLeast(0))
+        // A key not in the curated list (e.g. an exotic key set via managed config) shows as "None"
+        // here; power users manage those through the Defaults / managed-config chord string.
+        row.key.setSelection(KEY_CHOICES.indexOfFirst { it.keysym == chord.keysym }.coerceAtLeast(0))
     }
 
     /** Reads a row's controls into a [Chord]. */
     private fun readChord(row: Row): Chord =
-        Chord(row.ctrl.isChecked, row.alt.isChecked, row.shift.isChecked, keys[row.key.selectedItemPosition])
+        Chord(row.ctrl.isChecked, row.alt.isChecked, row.shift.isChecked,
+            KEY_CHOICES[row.key.selectedItemPosition].keysym)
 
     /**
      * Handles a change on row [idx]: recompose the chord; if it duplicates another action's assigned
@@ -160,38 +162,49 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
         )
     }
 
-    /** The localized spinner label for a trigger key. */
-    private fun labelResFor(key: Key): Int = when (key) {
-        Key.NONE -> R.string.key_label_none
-        Key.HOME -> R.string.key_label_home
-        Key.END -> R.string.key_label_end
-        Key.ESC -> R.string.key_label_esc
-        Key.DEL -> R.string.key_label_del
-        Key.INS -> R.string.key_label_ins
-        Key.BACKSPACE -> R.string.key_label_backspace
-        Key.PAGEUP -> R.string.key_label_pageup
-        Key.PAGEDOWN -> R.string.key_label_pagedown
-        Key.LEFT -> R.string.key_label_left
-        Key.RIGHT -> R.string.key_label_right
-        Key.UP -> R.string.key_label_up
-        Key.DOWN -> R.string.key_label_down
-        Key.TAB -> R.string.key_label_tab
-        Key.ENTER -> R.string.key_label_enter
-        Key.F1 -> R.string.key_label_f1
-        Key.F2 -> R.string.key_label_f2
-        Key.F3 -> R.string.key_label_f3
-        Key.F4 -> R.string.key_label_f4
-        Key.F5 -> R.string.key_label_f5
-        Key.F6 -> R.string.key_label_f6
-        Key.F7 -> R.string.key_label_f7
-        Key.F8 -> R.string.key_label_f8
-        Key.F9 -> R.string.key_label_f9
-        Key.F10 -> R.string.key_label_f10
-        Key.F11 -> R.string.key_label_f11
-        Key.F12 -> R.string.key_label_f12
-    }
-
     private companion object {
+        /** One entry in the curated trigger-key spinner: its keysym (0 = "None") and label. */
+        private class KeyChoice(val keysym: Long, val labelRes: Int)
+
+        /** Resolves an XK_ token to a [KeyChoice]; "" -> the "None" entry. */
+        private fun keyChoice(token: String, labelRes: Int) =
+            KeyChoice(if (token.isEmpty()) 0L else Keysyms.byToken.getValue(token.lowercase()), labelRes)
+
+        /**
+         * Curated trigger keys offered in the UI spinner (declaration order = spinner order). Tokens
+         * are X11 XK_ names resolved against the generated [Keysyms] table; power users can bind any
+         * other key via the Defaults / managed-config chord string.
+         */
+        private val KEY_CHOICES = listOf(
+            keyChoice("", R.string.key_label_none),
+            keyChoice("Home", R.string.key_label_home),
+            keyChoice("End", R.string.key_label_end),
+            keyChoice("Escape", R.string.key_label_esc),
+            keyChoice("Delete", R.string.key_label_del),
+            keyChoice("Insert", R.string.key_label_ins),
+            keyChoice("BackSpace", R.string.key_label_backspace),
+            keyChoice("Page_Up", R.string.key_label_pageup),
+            keyChoice("Page_Down", R.string.key_label_pagedown),
+            keyChoice("Left", R.string.key_label_left),
+            keyChoice("Right", R.string.key_label_right),
+            keyChoice("Up", R.string.key_label_up),
+            keyChoice("Down", R.string.key_label_down),
+            keyChoice("Tab", R.string.key_label_tab),
+            keyChoice("Return", R.string.key_label_enter),
+            keyChoice("F1", R.string.key_label_f1),
+            keyChoice("F2", R.string.key_label_f2),
+            keyChoice("F3", R.string.key_label_f3),
+            keyChoice("F4", R.string.key_label_f4),
+            keyChoice("F5", R.string.key_label_f5),
+            keyChoice("F6", R.string.key_label_f6),
+            keyChoice("F7", R.string.key_label_f7),
+            keyChoice("F8", R.string.key_label_f8),
+            keyChoice("F9", R.string.key_label_f9),
+            keyChoice("F10", R.string.key_label_f10),
+            keyChoice("F11", R.string.key_label_f11),
+            keyChoice("F12", R.string.key_label_f12),
+        )
+
         /** Metadata for one action row. Order MUST match InputKeyShortcutManager.from(). */
         private class Spec(
             val ctrlId: Int,

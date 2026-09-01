@@ -4,6 +4,14 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization' version "$kotlin_version"
 }
 
+// Build-time keysym table (issue #13 configurable shortcuts): rather than hand-maintaining a
+// token<->keysym table, generate one from libvncserver's rfb/keysym.h so key tokens follow the
+// established X11 XK_ names. The artifact is generated, not checked in.
+def keysymHeader = rootProject.file('libvncserver/include/rfb/keysym.h')
+// A plain File (not a Provider): AGP 9's SourceSet API rejects Providers, and the compile-time
+// ordering is carried by the explicit dependsOn on the Kotlin compile tasks below.
+def keysymGenDir = layout.buildDirectory.dir('generated/source/keysyms').get().asFile
+
 android {
     compileSdk 37
 
@@ -45,6 +53,12 @@ android {
     }
     namespace 'net.christianbeier.droidvnc_ng'
 
+    sourceSets {
+        main {
+            kotlin.srcDir keysymGenDir
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
@@ -54,6 +68,70 @@ android {
     }
     buildFeatures {
         buildConfig true
+    }
+}
+
+// Parses `#define XK_<Name> 0x<hex>` lines from rfb/keysym.h into Keysyms.kt: a lower-cased
+// token->keysym map for case-insensitive parsing plus a keysym->canonical-token map. When several
+// XK_ names share a keysym the longest one wins (tie -> first seen), which picks the descriptive
+// standard name over legacy/keyboard-specific aliases (e.g. "Page_Up" over "Prior", "F11" over "L1").
+def generateKeysyms = tasks.register('generateKeysyms') {
+    description = 'Generates Keysyms.kt from libvncserver rfb/keysym.h'
+    inputs.file(keysymHeader).withPropertyName('keysymHeader')
+    outputs.dir(keysymGenDir).withPropertyName('outputDir')
+    doLast {
+        def pkgDir = new File(keysymGenDir, 'net/christianbeier/droidvnc_ng')
+        pkgDir.mkdirs()
+        def entries = []
+        keysymHeader.eachLine('UTF-8') { line ->
+            def m = (line =~ /^#define\s+XK_(\w+)\s+0x([0-9A-Fa-f]+)\b/)
+            if (m) {
+                entries << (m[0][1] + ':' + m[0][2].toLowerCase())
+            }
+        }
+        def data = entries.join(';')
+        new File(pkgDir, 'Keysyms.kt').text = """\
+/* Generated from libvncserver rfb/keysym.h -- do not edit. */
+package net.christianbeier.droidvnc_ng
+
+/**
+ * Name<->keysym table generated at build time from libvncserver's rfb/keysym.h, so key tokens
+ * follow the established X11 XK_ names rather than a hand-maintained list. [byToken] keys are
+ * lower-cased for case-insensitive parsing; [tokenFor] gives the canonical (original-case) token --
+ * the longest XK_ name for a keysym (tie -> first seen), so aliases resolve to the descriptive
+ * standard name, e.g. 0xFF55 -> "Page_Up" (not "Prior") and 0xFFC8 -> "F11" (not "L1").
+ */
+internal object Keysyms {
+    private const val DATA = "${data}"
+
+    /** Lower-cased XK_ token (prefix stripped) -> keysym. */
+    val byToken: Map<String, Long>
+    /** keysym -> canonical original-case token (longest XK_ name wins). */
+    val tokenFor: Map<Long, String>
+
+    init {
+        val bt = HashMap<String, Long>(2048)
+        val tf = HashMap<Long, String>(2048)
+        for (e in DATA.split(';')) {
+            val c = e.indexOf(':')
+            val name = e.substring(0, c)
+            val sym = e.substring(c + 1).toLong(16)
+            bt[name.lowercase()] = sym
+            val prev = tf[sym]
+            if (prev == null || name.length > prev.length) tf[sym] = name
+        }
+        byToken = bt
+        tokenFor = tf
+    }
+}
+"""
+    }
+}
+
+// Generate before any Kotlin compilation (main + unit tests).
+tasks.configureEach { t ->
+    if (t.name.endsWith('Kotlin')) {
+        t.dependsOn generateKeysyms
     }
 }
 

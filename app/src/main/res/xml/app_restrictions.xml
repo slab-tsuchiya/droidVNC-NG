@@ -67,47 +67,49 @@
         android:title="@string/main_activity_settings_start_on_boot_delay" />
 
     <!-- Keyboard shortcut chord assignments. Each value is a chord string: optional "ctrl+"/"alt+"/
-         "shift+" modifiers plus one trigger key. Trigger keys: home, end, esc, del, ins, backspace,
-         pageup, pagedown, left, right, up, down, tab, enter, f1..f12. "none" disables the action.
-         Examples: "ctrl+shift+esc", "ctrl+alt+del", "esc", "none". -->
+         "shift+" modifiers plus one trigger key named by its X11 XK_ token (prefix stripped),
+         parsed case-insensitively. Common keys: Home, End, Escape, Delete, Insert, BackSpace,
+         Page_Up, Page_Down, Left, Right, Up, Down, Tab, Return, F1..F12; any other keysym name from
+         rfb/keysym.h works too. "none" disables the action.
+         Examples: "ctrl+shift+Escape", "ctrl+alt+Delete", "Escape", "none". -->
     <restriction
-        android:defaultValue="ctrl+shift+esc"
+        android:defaultValue="ctrl+shift+Escape"
         android:key="chordRecents"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_recents" />
 
     <restriction
-        android:defaultValue="home"
+        android:defaultValue="Home"
         android:key="chordHome"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_home" />
 
     <restriction
-        android:defaultValue="esc"
+        android:defaultValue="Escape"
         android:key="chordBack"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_back" />
 
     <restriction
-        android:defaultValue="end"
+        android:defaultValue="End"
         android:key="chordPower"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_power" />
 
     <restriction
-        android:defaultValue="ctrl+alt+pageup"
+        android:defaultValue="ctrl+alt+Page_Up"
         android:key="chordVolumeUp"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_volume_up" />
 
     <restriction
-        android:defaultValue="ctrl+alt+pagedown"
+        android:defaultValue="ctrl+alt+Page_Down"
         android:key="chordVolumeDown"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_volume_down" />
 
     <restriction
-        android:defaultValue="ctrl+alt+del"
+        android:defaultValue="ctrl+alt+Delete"
         android:key="chordRotate"
         android:restrictionType="string"
         android:title="@string/main_activity_settings_chord_rotate" />
