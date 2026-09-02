@@ -51,6 +51,10 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
     ) {
         /** Last-good canonical chord string ("" when unassigned); the revert target on a conflict. */
         var selected: String = ""
+
+        /** Keysym for each key-spinner position, parallel to its adapter (a trailing custom entry
+         *  is appended when the bound chord uses a key outside the curated list). */
+        var keysyms: List<Long> = emptyList()
     }
 
     private val rows = ArrayList<Row>(SPECS.size)
@@ -68,7 +72,6 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
     private fun setupRows() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val defaults = Defaults(context)
-        val keyLabels = KEY_CHOICES.map { context.getString(it.labelRes) }.toTypedArray()
 
         // resolve each row and set its initial state with the listeners still detached
         updating = true
@@ -80,11 +83,8 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
                 findViewById(spec.shiftId),
                 findViewById(spec.keyId),
             )
-            val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, keyLabels)
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            row.key.adapter = adapter
-
             val chord = Chord.fromString(prefs.getString(spec.prefKey, spec.default(defaults)))
+            bindKeyChoices(row, chord.keysym)
             row.selected = chord.toString()
             applyChord(row, chord)
             rows.add(row)
@@ -107,20 +107,41 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Populates a row's key spinner with the curated [KEY_CHOICES] and, when [keysym] is an assigned
+     * key outside that list (e.g. an exotic key set via managed config), a trailing entry labelled
+     * with that key's own XK token -- so it stays visible and editable instead of collapsing to
+     * "None". [Row.keysyms] mirrors the resulting adapter positions for read-back.
+     */
+    private fun bindKeyChoices(row: Row, keysym: Long) {
+        val labels = ArrayList<String>(KEY_CHOICES.size + 1)
+        val keysyms = ArrayList<Long>(KEY_CHOICES.size + 1)
+        for (choice in KEY_CHOICES) {
+            labels.add(context.getString(choice.labelRes))
+            keysyms.add(choice.keysym)
+        }
+        if (keysym != 0L && KEY_CHOICES.none { it.keysym == keysym }) {
+            labels.add(Keysyms.tokenFor[keysym] ?: "0x" + keysym.toString(16))
+            keysyms.add(keysym)
+        }
+        val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, labels)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        row.key.adapter = adapter
+        row.keysyms = keysyms
+    }
+
     /** Sets a row's modifier checkboxes and key spinner from a parsed chord. Mute listeners first. */
     private fun applyChord(row: Row, chord: Chord) {
         row.ctrl.isChecked = chord.ctrl
         row.alt.isChecked = chord.alt
         row.shift.isChecked = chord.shift
-        // A key not in the curated list (e.g. an exotic key set via managed config) shows as "None"
-        // here; power users manage those through the Defaults / managed-config chord string.
-        row.key.setSelection(KEY_CHOICES.indexOfFirst { it.keysym == chord.keysym }.coerceAtLeast(0))
+        row.key.setSelection(row.keysyms.indexOf(chord.keysym).coerceAtLeast(0))
     }
 
     /** Reads a row's controls into a [Chord]. */
     private fun readChord(row: Row): Chord =
         Chord(row.ctrl.isChecked, row.alt.isChecked, row.shift.isChecked,
-            KEY_CHOICES[row.key.selectedItemPosition].keysym)
+            row.keysyms[row.key.selectedItemPosition])
 
     /**
      * Handles a change on row [idx]: recompose the chord; if it duplicates another action's assigned

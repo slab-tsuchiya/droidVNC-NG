@@ -478,7 +478,6 @@ public class InputService extends AccessibilityService {
 				case ROTATE:
 					instance.mMainHandler.post(MediaProjectionService::togglePortraitInLandscapeWorkaround);
 					break;
-				case NONE:
 				default:
 					break;
 			}
@@ -561,7 +560,7 @@ public class InputService extends AccessibilityService {
 			 */
 			if(down != 0) {
 				Action shortcut = instance.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
-				if(shortcut != Action.NONE) {
+				if(shortcut != null) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;
 						performShortcut(shortcut);

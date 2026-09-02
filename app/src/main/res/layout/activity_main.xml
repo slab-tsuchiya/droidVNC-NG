@@ -338,14 +338,15 @@
 
         </TableLayout>
 
-        <net.christianbeier.droidvnc_ng.InputKeyShortcutSetupView
-            android:id="@+id/key_shortcut_setup"
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/key_shortcut_setup_button"
+            style="@style/MainButtonStyle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="1dp"
-            android:padding="10dp" />
-
-
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/main_activity_settings_key_shortcuts" />
 
 
         <TextView

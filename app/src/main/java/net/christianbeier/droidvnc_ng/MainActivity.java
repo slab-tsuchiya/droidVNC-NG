@@ -59,7 +59,10 @@ import android.text.style.ClickableSpan;
 import android.util.Log;
 import android.util.Pair;
 import android.util.TypedValue;
+import android.app.Dialog;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -169,6 +172,21 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra(WebViewActivity.EXTRA_URL, url);
             intent.putExtra(WebViewActivity.EXTRA_TITLE, getString(R.string.main_activity_survey_button));
             startActivity(intent);
+        });
+
+        // The keyboard-shortcut rows would crowd the settings list, so they live in a full-screen
+        // dialog opened from this button rather than inline (the InputKeyShortcutSetupView loads and
+        // persists its own state).
+        Button keyShortcutsButton = findViewById(R.id.key_shortcut_setup_button);
+        keyShortcutsButton.setOnClickListener(view -> {
+            Dialog dialog = new Dialog(this, R.style.FullScreenDialog);
+            dialog.setContentView(R.layout.dialog_key_shortcut_setup);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            }
+            dialog.findViewById(R.id.key_shortcut_setup_done).setOnClickListener(v -> dialog.dismiss());
+            dialog.show();
         });
 
         mAddress = findViewById(R.id.address);

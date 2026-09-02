@@ -21,9 +21,11 @@ package net.christianbeier.droidvnc_ng
  * The model is split into small value types plus a manager:
  *  - [Action]: the device action a chord is assigned to (execution lives in the caller).
  *  - [Chord]: ctrl/alt/shift modifier flags plus the RFB/X11 [keysym] of one trigger key.
- *    Serializes to/from a "+"-joined string such as "ctrl+alt+Delete" or "Escape". The trigger uses
- *    the established X11 XK_ names (see [Keysyms], generated from libvncserver's rfb/keysym.h);
- *    parsing is case-insensitive. Empty input, "none", or an unknown key means "not assigned".
+ *    Serializes to/from a "+"-joined string such as "Control_L+Alt_L+Delete" or "Escape". Every
+ *    token -- both the modifiers and the trigger -- is an established X11 XK_ name with the "XK_"
+ *    prefix stripped (see [Keysyms], generated from libvncserver's rfb/keysym.h); parsing is
+ *    case-insensitive. The modifiers are named after their left-hand keys (Control_L/Alt_L/Shift_L)
+ *    but match either side. Empty input or an unknown trigger key means "not assigned".
  *  - [Binding]: a [Chord] bound to an [Action].
  *  - [InputKeyShortcutManager]: holds the active bindings and resolves an incoming
  *    (modifier state, trigger keysym) to its [Action]. Built from the per-action chord strings.
@@ -36,7 +38,7 @@ package net.christianbeier.droidvnc_ng
 
 /** Action a chord is assigned to. Execution lives in the caller (InputService). */
 internal enum class Action {
-    NONE, RECENTS, HOME, BACK, POWER_DIALOG, VOLUME_UP, VOLUME_DOWN, ROTATE
+    RECENTS, HOME, BACK, POWER_DIALOG, VOLUME_UP, VOLUME_DOWN, ROTATE
 }
 
 /**
@@ -47,23 +49,24 @@ internal data class Chord(val ctrl: Boolean, val alt: Boolean, val shift: Boolea
 
     val isAssigned: Boolean get() = keysym != 0L
 
-    /** Canonical persisted string: `ctrl+alt+shift+<XK token>`, or "" when unassigned. */
+    /** Canonical persisted string: `Control_L+Alt_L+Shift_L+<XK token>`, or "" when unassigned. */
     override fun toString(): String {
         val token = Keysyms.tokenFor[keysym] ?: return ""
         val b = StringBuilder()
-        if (ctrl) b.append("ctrl+")
-        if (alt) b.append("alt+")
-        if (shift) b.append("shift+")
+        if (ctrl) b.append("Control_L+")
+        if (alt) b.append("Alt_L+")
+        if (shift) b.append("Shift_L+")
         b.append(token)
         return b.toString()
     }
 
     companion object {
         /**
-         * Parses a persisted chord string (case-insensitive). Tokens are separated by "+"; recognizes
-         * the ctrl/alt/shift modifier tokens in any order, and the last other token is the trigger key
-         * (an XK_ name, prefix stripped -- see [Keysyms]). Empty / "none" / unknown-key input yields an
-         * unassigned chord.
+         * Parses a persisted chord string (case-insensitive). Tokens are separated by "+"; the
+         * modifier tokens (the XK_ names Control_L/Control_R, Alt_L/Alt_R, Shift_L/Shift_R, prefix
+         * stripped -- either side accepted) may appear in any order, and the last other token is the
+         * trigger key (also an XK_ name with the prefix stripped -- see [Keysyms]). Empty / unknown
+         * trigger input yields an unassigned chord.
          */
         fun fromString(s: String?): Chord {
             var ctrl = false
@@ -73,10 +76,10 @@ internal data class Chord(val ctrl: Boolean, val alt: Boolean, val shift: Boolea
             if (s != null) {
                 for (part in s.split('+')) {
                     when (val p = part.trim().lowercase()) {
-                        "", "none" -> { /* skip: empty tokens / explicit "unassigned" */ }
-                        "ctrl" -> ctrl = true
-                        "alt" -> alt = true
-                        "shift" -> shift = true
+                        "" -> { /* skip empty tokens from a leading/trailing/double "+" */ }
+                        "control_l", "control_r" -> ctrl = true
+                        "alt_l", "alt_r" -> alt = true
+                        "shift_l", "shift_r" -> shift = true
                         else -> keysym = Keysyms.byToken[p] ?: 0L
                     }
                 }
@@ -97,17 +100,17 @@ internal data class Binding(val chord: Chord, val action: Action)
 internal class InputKeyShortcutManager(private val bindings: List<Binding>) {
 
     /**
-     * Returns the action bound to the given (exact) modifier state and trigger keysym, or
-     * [Action.NONE] if nothing matches.
+     * Returns the action bound to the given (exact) modifier state and trigger keysym, or null if
+     * nothing matches.
      */
-    fun actionFor(ctrl: Boolean, alt: Boolean, shift: Boolean, keysym: Long): Action {
+    fun actionFor(ctrl: Boolean, alt: Boolean, shift: Boolean, keysym: Long): Action? {
         for (binding in bindings) {
             val c = binding.chord
             if (c.ctrl == ctrl && c.alt == alt && c.shift == shift && c.keysym == keysym) {
                 return binding.action
             }
         }
-        return Action.NONE
+        return null
     }
 
     companion object {

@@ -23,9 +23,29 @@ An example `defaults.json` with completely new defaults (not all entries need to
     "password": "supersecure",
     "accessKey": "evenmoresecure",
     "startOnBoot": true,
-    "startOnBootDelay": 0
+    "startOnBootDelay": 0,
+    "chordRecents": "Control_L+Shift_L+Escape",
+    "chordHome": "Home",
+    "chordBack": "Escape",
+    "chordPower": "End",
+    "chordVolumeUp": "Control_L+Alt_L+Page_Up",
+    "chordVolumeDown": "Control_L+Alt_L+Page_Down",
+    "chordRotate": "Control_L+Alt_L+Delete"
 }
 ```
+
+### Keyboard shortcut chords
+The `chord*` entries assign a VNC-side key combination to each Android action. Each value is a
+`+`-joined string of an optional set of modifiers plus one trigger key, all named by their X11
+`XK_` tokens with the `XK_` prefix stripped and parsed case-insensitively:
+
+- Modifiers: `Control_L`, `Alt_L`, `Shift_L` (either the left- or right-hand key matches).
+- Trigger key: any keysym name from libvncserver's `rfb/keysym.h`, e.g. `Home`, `End`, `Escape`,
+  `Delete`, `Insert`, `BackSpace`, `Page_Up`, `Page_Down`, `Left`, `Right`, `Up`, `Down`, `Tab`,
+  `Return`, `F1`..`F12`.
+- An empty string disables the action.
+
+Examples: `"Control_L+Alt_L+Delete"`, `"Escape"`, `""`. The values shown above are the defaults.
 
 ## Via Managed App Restrictions
 If you are using a device owner app, you can also preseed the preferences via [managed app restrictions](https://developer.android.com/work/managed-configurations). The same keys as in the JSON file above can be used.

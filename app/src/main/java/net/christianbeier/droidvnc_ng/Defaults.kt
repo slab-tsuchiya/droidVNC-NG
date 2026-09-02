@@ -90,12 +90,13 @@ class Defaults {
 
     /*
        Keyboard shortcut chord assignments. Each value is an InputKeyShortcut chord string: optional
-       "ctrl+"/"alt+"/"shift+" modifiers plus one trigger key named by its X11 XK_ token (e.g.
-       "ctrl+alt+Delete", "Escape"), or "none" to disable the action. Defaults reproduce the
-       historical hard-coded shortcuts.
+       modifiers plus one trigger key, all named by their X11 XK_ tokens with the "XK_" prefix
+       stripped (the modifiers are Control_L/Alt_L/Shift_L, e.g. "Control_L+Alt_L+Delete" or
+       "Escape"); an empty string disables the action. Defaults reproduce the historical hard-coded
+       shortcuts.
      */
     @EncodeDefault
-    var chordRecents = "ctrl+shift+Escape"
+    var chordRecents = "Control_L+Shift_L+Escape"
         private set
 
     @EncodeDefault
@@ -111,15 +112,15 @@ class Defaults {
         private set
 
     @EncodeDefault
-    var chordVolumeUp = "ctrl+alt+Page_Up"
+    var chordVolumeUp = "Control_L+Alt_L+Page_Up"
         private set
 
     @EncodeDefault
-    var chordVolumeDown = "ctrl+alt+Page_Down"
+    var chordVolumeDown = "Control_L+Alt_L+Page_Down"
         private set
 
     @EncodeDefault
-    var chordRotate = "ctrl+alt+Delete"
+    var chordRotate = "Control_L+Alt_L+Delete"
         private set
 
     /*

@@ -1,54 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Keyboard-shortcut settings rows, inflated into InputKeyShortcutSetupView (a
-     TableLayout). A bold heading row plus one row per configurable action: three
-     modifier checkboxes (Ctrl/Alt/Shift) and a trigger-key spinner. The spinner
-     entries and their wiring are set up in InputKeyShortcutSetupView. -->
+<!-- Keyboard-shortcut settings rows, inflated into InputKeyShortcutSetupView (a TableLayout, so a
+     vertical stack). One block per configurable action: the action label on its own line above a
+     row of three modifier checkboxes (Ctrl/Alt/Shift) and a trigger-key spinner that takes the
+     remaining width. Stacking keeps the row from being cut off on the right on narrow portrait
+     screens. Shown in a full-screen dialog (see MainActivity); the dialog supplies the heading. The
+     spinner entries and their wiring are set up in InputKeyShortcutSetupView. -->
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="0"
-            android:padding="10dp"
-            android:text="@string/main_activity_settings_key_shortcuts"
-            android:textStyle="bold" />
-    </TableRow>
-
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_recents" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_recents_ctrl"
@@ -73,41 +48,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_home" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_home_ctrl"
@@ -132,41 +93,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_back" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_back_ctrl"
@@ -191,41 +138,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_power" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_power_ctrl"
@@ -250,41 +183,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_volume_up" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_volume_up_ctrl"
@@ -309,41 +228,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_volume_down" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_volume_down_ctrl"
@@ -368,41 +273,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_column="0"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:hyphenationFrequency="full"
             android:text="@string/main_activity_settings_chord_rotate" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_gravity="center_vertical"
-            android:padding="10dp"
-            android:text="@string/main_activity_colon" />
-
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_column="2"
-            android:layout_weight="3"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp">
+            android:gravity="center_vertical">
 
             <CheckBox
                 android:id="@+id/settings_chord_rotate_ctrl"
@@ -427,8 +318,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="3dp" />
+                android:minWidth="80dp" />
         </LinearLayout>
-    </TableRow>
+    </LinearLayout>
 
 </merge>
