@@ -88,13 +88,6 @@ class Defaults {
     var startOnBootDelay = 0
         private set
 
-    /*
-       Keyboard shortcut chord assignments. Each value is an InputKeyShortcut chord string: optional
-       modifiers plus one trigger key, all named by their X11 XK_ tokens with the "XK_" prefix
-       stripped (the modifiers are Control_L/Alt_L/Shift_L, e.g. "Control_L+Alt_L+Delete" or
-       "Escape"); an empty string disables the action. Defaults reproduce the historical hard-coded
-       shortcuts.
-     */
     @EncodeDefault
     var chordRecents = "Control_L+Shift_L+Escape"
         private set
