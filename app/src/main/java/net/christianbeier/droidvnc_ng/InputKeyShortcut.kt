@@ -23,9 +23,10 @@ package net.christianbeier.droidvnc_ng
  *  - [Chord]: ctrl/alt/shift modifier flags plus the RFB/X11 [keysym] of one trigger key.
  *    Serializes to/from a "+"-joined string such as "Control_L+Alt_L+Delete" or "Escape". Every
  *    token -- both the modifiers and the trigger -- is an established X11 XK_ name with the "XK_"
- *    prefix stripped (see [Keysyms], generated from libvncserver's rfb/keysym.h); parsing is
- *    case-insensitive. The modifiers are named after their left-hand keys (Control_L/Alt_L/Shift_L)
- *    but match either side. Empty input or an unknown trigger key means "not assigned".
+ *    prefix stripped (resolved through [InputKeysyms] over the generated [InputKeysymTable]). The
+ *    modifiers are named after their left-hand keys (Control_L/Alt_L/Shift_L), match either side and
+ *    are case-insensitive; the trigger key name is matched by exact case. Empty input or an unknown
+ *    trigger key means "not assigned".
  *  - [Binding]: a [Chord] bound to an [Action].
  *  - [InputKeyShortcutManager]: holds the active bindings and resolves an incoming
  *    (modifier state, trigger keysym) to its [Action]. Built from the per-action chord strings.
@@ -51,7 +52,7 @@ internal data class Chord(val ctrl: Boolean, val alt: Boolean, val shift: Boolea
 
     /** Canonical persisted string: `Control_L+Alt_L+Shift_L+<XK token>`, or "" when unassigned. */
     override fun toString(): String {
-        val token = Keysyms.tokenFor[keysym] ?: return ""
+        val token = InputKeysyms.nameOf(keysym) ?: return ""
         val b = StringBuilder()
         if (ctrl) b.append("Control_L+")
         if (alt) b.append("Alt_L+")
@@ -62,11 +63,11 @@ internal data class Chord(val ctrl: Boolean, val alt: Boolean, val shift: Boolea
 
     companion object {
         /**
-         * Parses a persisted chord string (case-insensitive). Tokens are separated by "+"; the
-         * modifier tokens (the XK_ names Control_L/Control_R, Alt_L/Alt_R, Shift_L/Shift_R, prefix
-         * stripped -- either side accepted) may appear in any order, and the last other token is the
-         * trigger key (also an XK_ name with the prefix stripped -- see [Keysyms]). Empty / unknown
-         * trigger input yields an unassigned chord.
+         * Parses a persisted chord string. Tokens are separated by "+"; the modifier tokens (the XK_
+         * names Control_L/Control_R, Alt_L/Alt_R, Shift_L/Shift_R, prefix stripped -- either side
+         * accepted, case-insensitive) may appear in any order, and the last other token is the trigger
+         * key (an XK_ name with the prefix stripped, matched by exact case -- see [InputKeysyms]).
+         * Empty / unknown trigger input yields an unassigned chord.
          */
         fun fromString(s: String?): Chord {
             var ctrl = false
@@ -75,12 +76,14 @@ internal data class Chord(val ctrl: Boolean, val alt: Boolean, val shift: Boolea
             var keysym = 0L
             if (s != null) {
                 for (part in s.split('+')) {
-                    when (val p = part.trim().lowercase()) {
+                    val token = part.trim()
+                    // modifiers match either side and are case-insensitive; the trigger key is exact
+                    when (token.lowercase()) {
                         "" -> { /* skip empty tokens from a leading/trailing/double "+" */ }
                         "control_l", "control_r" -> ctrl = true
                         "alt_l", "alt_r" -> alt = true
                         "shift_l", "shift_r" -> shift = true
-                        else -> keysym = Keysyms.byToken[p] ?: 0L
+                        else -> keysym = InputKeysyms.keysymFor(token) ?: 0L
                     }
                 }
             }

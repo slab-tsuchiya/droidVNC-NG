@@ -122,7 +122,7 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
             keysyms.add(choice.keysym)
         }
         if (keysym != 0L && KEY_CHOICES.none { it.keysym == keysym }) {
-            labels.add(Keysyms.tokenFor[keysym] ?: "0x" + keysym.toString(16))
+            labels.add(InputKeysyms.nameOf(keysym) ?: "0x" + keysym.toString(16))
             keysyms.add(keysym)
         }
         val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, labels)
@@ -188,14 +188,18 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
         /** One entry in the curated trigger-key spinner: its keysym (0 = "None") and label. */
         private class KeyChoice(val keysym: Long, val labelRes: Int)
 
-        /** Resolves an XK_ token to a [KeyChoice]; "" -> the "None" entry. */
+        /** Resolves an exact-case XK_ token to a [KeyChoice]; "" -> the "None" entry. */
         private fun keyChoice(token: String, labelRes: Int) =
-            KeyChoice(if (token.isEmpty()) 0L else Keysyms.byToken.getValue(token.lowercase()), labelRes)
+            KeyChoice(
+                if (token.isEmpty()) 0L
+                else requireNotNull(InputKeysyms.keysymFor(token)) { "unknown XK token: $token" },
+                labelRes
+            )
 
         /**
          * Curated trigger keys offered in the UI spinner (declaration order = spinner order). Tokens
-         * are X11 XK_ names resolved against the generated [Keysyms] table; power users can bind any
-         * other key via the Defaults / managed-config chord string.
+         * are X11 XK_ names (exact case) resolved against the generated [InputKeysymTable]; power users
+         * can bind any other key via the Defaults / managed-config chord string.
          */
         private val KEY_CHOICES = listOf(
             keyChoice("", R.string.key_label_none),
