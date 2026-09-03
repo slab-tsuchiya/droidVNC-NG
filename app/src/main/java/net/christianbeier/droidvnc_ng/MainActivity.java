@@ -79,6 +79,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
@@ -185,7 +186,8 @@ public class MainActivity extends AppCompatActivity {
             if (window != null) {
                 window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             }
-            dialog.findViewById(R.id.key_shortcut_setup_done).setOnClickListener(v -> dialog.dismiss());
+            MaterialToolbar toolbar = dialog.findViewById(R.id.key_shortcut_setup_toolbar);
+            toolbar.setNavigationOnClickListener(v -> dialog.dismiss());
             dialog.show();
         });
 

@@ -1,38 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Content of the full-screen keyboard-shortcut dialog opened from MainActivity: a heading, the
-     scrollable InputKeyShortcutSetupView rows, and a Done button. -->
+<!-- Content of the full-screen keyboard-shortcut dialog opened from MainActivity: a top app-bar
+     (a MaterialToolbar with a back/close navigation icon) over the scrollable
+     InputKeyShortcutSetupView rows and the shortcut reference note. The toolbar's navigation icon
+     dismisses the dialog, matching what the system Back button already does. fitsSystemWindows keeps
+     the content clear of the status bar under the edge-to-edge main activity. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="?android:attr/colorBackground"
-    android:padding="16dp">
+    android:fitsSystemWindows="true">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="@string/main_activity_settings_key_shortcuts"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/key_shortcut_setup_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationContentDescription="@string/main_activity_settings_key_shortcuts_close"
+        app:title="@string/main_activity_settings_key_shortcuts"
+        app:titleTextColor="@android:color/white" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <net.christianbeier.droidvnc_ng.InputKeyShortcutSetupView
-            android:id="@+id/key_shortcut_setup"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </ScrollView>
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <Button
-        android:id="@+id/key_shortcut_setup_done"
-        style="@style/MainButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_marginTop="8dp"
-        android:text="@android:string/ok" />
+            <net.christianbeier.droidvnc_ng.InputKeyShortcutSetupView
+                android:id="@+id/key_shortcut_setup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/special_key_reference"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:padding="10dp"
+                android:text="@string/main_activity_special_key_reference" />
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
