@@ -57,13 +57,11 @@ android {
     }
 }
 
-// Build-time keysym table (issue #13 configurable shortcuts): rather than hand-maintaining a
-// token<->keysym table, generate Keysyms.kt from libvncserver's rfb/keysym.h so key tokens follow
-// the established X11 XK_ names. Each keysym becomes a named `const val` field and the byToken /
-// tokenFor lookup maps are built from those constants at class-init -- nothing is packed into a
-// string or parsed at runtime. The source is registered through the AGP variant API
-// (addGeneratedSourceDirectory) so Android Studio lists it under generated sources; it is not
-// checked in.
+// Generates Keysyms.kt from libvncserver's rfb/keysym.h. Each keysym becomes a named `const val`
+// field and the byToken / tokenFor lookup maps are built from those constants at class-init --
+// nothing is packed into a string or parsed at runtime. The source is registered through the AGP
+// variant API (addGeneratedSourceDirectory) so Android Studio lists it under generated sources; it
+// is not checked in.
 abstract class GenerateKeysyms extends DefaultTask {
     @InputFile
     abstract RegularFileProperty getKeysymHeader()
@@ -93,8 +91,7 @@ abstract class GenerateKeysyms extends DefaultTask {
         sb << '/* Generated from libvncserver rfb/keysym.h -- do not edit. */\n'
         sb << 'package net.christianbeier.droidvnc_ng\n\n'
         sb << '/**\n'
-        sb << " * Name<->keysym table generated at build time from libvncserver's rfb/keysym.h, so key\n"
-        sb << ' * tokens follow the established X11 XK_ names rather than a hand-maintained list. Each keysym\n'
+        sb << " * Name<->keysym table generated at build time from libvncserver's rfb/keysym.h. Each keysym\n"
         sb << ' * is a named XK_-prefixed constant; [byToken] and [tokenFor] are built from those constants\n'
         sb << ' * at class-init -- nothing is packed into a string or parsed at runtime. [byToken] keys are\n'
         sb << ' * lower-cased for case-insensitive parsing; [tokenFor] gives the canonical (original-case)\n'
