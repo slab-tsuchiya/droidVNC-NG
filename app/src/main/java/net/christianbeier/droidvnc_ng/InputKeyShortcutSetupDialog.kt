@@ -15,31 +15,29 @@
 
 package net.christianbeier.droidvnc_ng
 
+import android.app.Dialog
 import android.content.Context
-import android.util.AttributeSet
-import android.view.LayoutInflater
+import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.Spinner
-import android.widget.TableLayout
 import android.widget.Toast
 import androidx.preference.PreferenceManager
+import com.google.android.material.appbar.MaterialToolbar
 
 /**
- * Settings view for the configurable keyboard shortcuts (issue #13). Inflates one row per
+ * Full-screen dialog for the configurable keyboard shortcuts (issue #13). It inflates one row per
  * [Action] -- three modifier checkboxes (Ctrl/Alt/Shift) plus a trigger-key [Spinner] -- and owns
  * their whole lifecycle: loading the persisted chords, offering localized key labels, rejecting a
  * chord already assigned to another action, persisting a change and live-updating the running
- * [InputService]. Keeping all of this here rather than in MainActivity makes the widget set
- * self-contained; the Activity just drops the view into its layout.
+ * [InputService]. The rows it wires up and the layout that declares them live in the same unit, so
+ * the caller only has to construct and [show] it.
  */
-class InputKeyShortcutSetupView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null
-) : TableLayout(context, attrs) {
+class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.FullScreenDialog) {
 
     /** Runtime state for one action row: its resolved controls, prefs key and last-good chord. */
     private class Row(
@@ -62,11 +60,14 @@ class InputKeyShortcutSetupView @JvmOverloads constructor(
     /** True while programmatically setting control state, so the change listeners stay quiet. */
     private var updating = false
 
-    init {
-        LayoutInflater.from(context).inflate(R.layout.view_key_shortcut_setup, this, true)
-        if (!isInEditMode) {
-            setupRows()
-        }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.dialog_key_shortcut_setup)
+        window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        // The toolbar's navigation icon dismisses the dialog, matching the system Back button.
+        findViewById<MaterialToolbar>(R.id.key_shortcut_setup_toolbar)
+            .setNavigationOnClickListener { dismiss() }
+        setupRows()
     }
 
     private fun setupRows() {
