@@ -85,9 +85,10 @@ internal object InputKeyShortcut {
             /**
              * Parses a persisted chord string. Tokens are separated by "+"; the modifier tokens (the
              * XK_ names Control_L/Control_R, Alt_L/Alt_R, Shift_L/Shift_R, prefix stripped -- either
-             * side accepted, case-insensitive) may appear in any order, and the last other token is
-             * the trigger key (an XK_ name with the prefix stripped, matched by exact case -- see
-             * [InputKeysyms]). Empty / unknown trigger input yields an unassigned chord.
+             * side accepted, matched by exact case like the trigger) may appear in any order, and the
+             * last other token is the trigger key (an XK_ name with the prefix stripped, also matched
+             * by exact case -- see [InputKeysyms]). Empty / unknown trigger input yields an unassigned
+             * chord.
              */
             fun fromString(s: String?): Chord {
                 var ctrl = false
@@ -97,12 +98,12 @@ internal object InputKeyShortcut {
                 if (s != null) {
                     for (part in s.split('+')) {
                         val token = part.trim()
-                        // modifiers match either side and are case-insensitive; the trigger key is exact
-                        when (token.lowercase()) {
+                        // modifiers match either side, by exact case like the trigger key
+                        when (token) {
                             "" -> { /* skip empty tokens from a leading/trailing/double "+" */ }
-                            "control_l", "control_r" -> ctrl = true
-                            "alt_l", "alt_r" -> alt = true
-                            "shift_l", "shift_r" -> shift = true
+                            "Control_L", "Control_R" -> ctrl = true
+                            "Alt_L", "Alt_R" -> alt = true
+                            "Shift_L", "Shift_R" -> shift = true
                             else -> keysym = InputKeysyms.keysymFor(token) ?: 0L
                         }
                     }

@@ -30,16 +30,17 @@ import org.junit.Test
  */
 class InputKeyShortcutTest {
 
-    /** Modifiers are case-insensitive and canonicalize to their left variant; the trigger is exact. */
+    /** Modifiers match by exact case (like the trigger) and canonicalize their right variant to left. */
     @Test
     fun chordParsingAndCanonicalForm() {
         // canonical round-trip
         assertEquals("Control_L+Alt_L+Delete", Chord.fromString("Control_L+Alt_L+Delete").toString())
-        // modifier case and order do not matter; right-hand modifiers canonicalize to the left name
-        assertEquals("Control_L+Shift_L+Escape", Chord.fromString("shift_l+control_r+Escape").toString())
-        // the trigger key is matched by exact case, so a mis-cased trigger is unassigned
+        // modifier order does not matter and a right-hand modifier canonicalizes to its left name
+        assertEquals("Control_L+Shift_L+Escape", Chord.fromString("Shift_L+Control_R+Escape").toString())
+        // both modifiers and the trigger are matched by exact case, so mis-cased tokens are dropped
         assertEquals("Home", Chord.fromString("Home").toString())
         assertEquals("", Chord.fromString("home").toString())
+        assertEquals("Escape", Chord.fromString("control_l+Escape").toString())
     }
 
     @Test
