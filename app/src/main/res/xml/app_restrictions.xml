@@ -66,14 +66,6 @@
         android:restrictionType="integer"
         android:title="@string/main_activity_settings_start_on_boot_delay" />
 
-    <!-- Keyboard shortcut chord assignments. Each value is a chord string: optional modifiers plus
-         one trigger key, joined with "+". The modifiers are Control_L/Alt_L/Shift_L (either side
-         accepted, case-insensitive). The trigger key is named by its X11 XK_ token with the "XK_"
-         prefix stripped and matched by exact case. Common trigger keys: Home, End, Escape, Delete,
-         Insert, BackSpace, Page_Up, Page_Down, Left, Right, Up, Down, Tab, Return, F1..F12; any other
-         keysym name from rfb/keysym.h works too (use its exact spelling). An empty string disables
-         the action.
-         Examples: "Control_L+Shift_L+Escape", "Control_L+Alt_L+Delete", "Escape", "". -->
     <restriction
         android:defaultValue="Control_L+Shift_L+Escape"
         android:key="chordRecents"

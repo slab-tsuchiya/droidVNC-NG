@@ -18,30 +18,33 @@ package net.christianbeier.droidvnc_ng
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.CompoundButton
+import android.widget.LinearLayout
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.preference.PreferenceManager
 import com.google.android.material.appbar.MaterialToolbar
 
 /**
  * Full-screen dialog for the configurable keyboard shortcuts (issue #13). It inflates one row per
- * [Action] -- three modifier checkboxes (Ctrl/Alt/Shift) plus a trigger-key [Spinner] -- and owns
- * their whole lifecycle: loading the persisted chords, offering localized key labels, rejecting a
- * chord already assigned to another action, persisting a change and live-updating the running
- * [InputService]. The rows it wires up and the layout that declares them live in the same unit, so
- * the caller only has to construct and [show] it.
+ * [InputKeyShortcut.Action] -- three modifier checkboxes (Ctrl/Alt/Shift) plus a trigger-key
+ * [Spinner] -- and owns their whole lifecycle: loading the persisted chords, offering localized key
+ * labels, rejecting a chord already assigned to another action, persisting a change and live-updating
+ * the running [InputService]. It iterates the [InputKeyShortcut.Action] constants rather than listing
+ * the actions here, so the caller only has to construct and [show] it.
  */
 class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.FullScreenDialog) {
 
-    /** Runtime state for one action row: its resolved controls, prefs key and last-good chord. */
+    /** Runtime state for one action row: its action, resolved controls and last-good chord. */
     private class Row(
-        val prefKey: String,
+        val action: InputKeyShortcut.Action,
         val ctrl: CheckBox,
         val alt: CheckBox,
         val shift: CheckBox,
@@ -55,7 +58,7 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
         var keysyms: List<Long> = emptyList()
     }
 
-    private val rows = ArrayList<Row>(SPECS.size)
+    private val rows = ArrayList<Row>(InputKeyShortcut.Action.entries.size)
 
     /** True while programmatically setting control state, so the change listeners stay quiet. */
     private var updating = false
@@ -73,21 +76,26 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
     private fun setupRows() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val defaults = Defaults(context)
+        val container = findViewById<LinearLayout>(R.id.key_shortcut_rows)
+        val inflater = LayoutInflater.from(context)
 
-        // resolve each row and set its initial state with the listeners still detached
+        // inflate a row per action and set its initial state with the listeners still detached
         updating = true
-        for (spec in SPECS) {
+        for (action in InputKeyShortcut.Action.entries) {
+            val view = inflater.inflate(R.layout.key_shortcut_row, container, false)
+            view.findViewById<TextView>(R.id.key_shortcut_label).setText(action.labelRes)
             val row = Row(
-                spec.prefKey,
-                findViewById(spec.ctrlId),
-                findViewById(spec.altId),
-                findViewById(spec.shiftId),
-                findViewById(spec.keyId),
+                action,
+                view.findViewById(R.id.key_shortcut_ctrl),
+                view.findViewById(R.id.key_shortcut_alt),
+                view.findViewById(R.id.key_shortcut_shift),
+                view.findViewById(R.id.key_shortcut_key),
             )
-            val chord = Chord.fromString(prefs.getString(spec.prefKey, spec.default(defaults)))
+            val chord = InputKeyShortcut.Chord.fromString(prefs.getString(action.prefKey, action.defaultChord(defaults)))
             bindKeyChoices(row, chord.keysym)
             row.selected = chord.toString()
             applyChord(row, chord)
+            container.addView(view)
             rows.add(row)
         }
         updating = false
@@ -132,21 +140,21 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
     }
 
     /** Sets a row's modifier checkboxes and key spinner from a parsed chord. Mute listeners first. */
-    private fun applyChord(row: Row, chord: Chord) {
+    private fun applyChord(row: Row, chord: InputKeyShortcut.Chord) {
         row.ctrl.isChecked = chord.ctrl
         row.alt.isChecked = chord.alt
         row.shift.isChecked = chord.shift
         row.key.setSelection(row.keysyms.indexOf(chord.keysym).coerceAtLeast(0))
     }
 
-    /** Reads a row's controls into a [Chord]. */
-    private fun readChord(row: Row): Chord =
-        Chord(row.ctrl.isChecked, row.alt.isChecked, row.shift.isChecked,
+    /** Reads a row's controls into a [InputKeyShortcut.Chord]. */
+    private fun readChord(row: Row): InputKeyShortcut.Chord =
+        InputKeyShortcut.Chord(row.ctrl.isChecked, row.alt.isChecked, row.shift.isChecked,
             row.keysyms[row.key.selectedItemPosition])
 
     /**
      * Handles a change on row [idx]: recompose the chord; if it duplicates another action's assigned
-     * chord, toast and revert; otherwise persist it and live-update the running [InputService].
+     * chord, toast and revert; otherwise persist it and live-reload the running [InputService].
      */
     private fun onChordChanged(idx: Int) {
         if (updating) {
@@ -158,30 +166,29 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
         if (value == row.selected) {
             return // no actual change (e.g. a re-layout or unchanged re-selection callback)
         }
-        // mutual exclusion: an assigned chord may not equal another action's assigned chord
+        // Reject an assigned chord another action already uses: rebuild the manager over the proposed
+        // assignment (this row's new value, the rest as-is) and let it flag the duplicate.
         if (chord.isAssigned) {
-            for (j in rows.indices) {
-                if (j != idx && value == rows[j].selected) {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.main_activity_settings_chord_conflict, value),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    updating = true
-                    applyChord(row, Chord.fromString(row.selected)) // revert to last good
-                    updating = false
-                    return
-                }
+            val proposed = InputKeyShortcut.Manager.from { a ->
+                if (a == row.action) value else rows[a.ordinal].selected
+            }
+            if (chord in proposed.conflicts) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.main_activity_settings_chord_conflict, value),
+                    Toast.LENGTH_SHORT
+                ).show()
+                updating = true
+                applyChord(row, InputKeyShortcut.Chord.fromString(row.selected)) // revert to last good
+                updating = false
+                return
             }
         }
         row.selected = value
         PreferenceManager.getDefaultSharedPreferences(context)
-            .edit().putString(row.prefKey, value).apply()
-        // live-update the running input service (a no-op when it is not connected)
-        InputService.updateShortcuts(
-            rows[0].selected, rows[1].selected, rows[2].selected, rows[3].selected,
-            rows[4].selected, rows[5].selected, rows[6].selected
-        )
+            .edit().putString(row.action.prefKey, value).apply()
+        // live-reload the running input service from prefs (a no-op when it is not connected)
+        InputService.reloadShortcuts()
     }
 
     private companion object {
@@ -229,54 +236,6 @@ class InputKeyShortcutSetupDialog(context: Context) : Dialog(context, R.style.Fu
             keyChoice("F10", R.string.key_label_f10),
             keyChoice("F11", R.string.key_label_f11),
             keyChoice("F12", R.string.key_label_f12),
-        )
-
-        /** Metadata for one action row. Order MUST match InputKeyShortcutManager.from(). */
-        private class Spec(
-            val ctrlId: Int,
-            val altId: Int,
-            val shiftId: Int,
-            val keyId: Int,
-            val prefKey: String,
-            val default: (Defaults) -> String,
-        )
-
-        private val SPECS = listOf(
-            Spec(
-                R.id.settings_chord_recents_ctrl, R.id.settings_chord_recents_alt,
-                R.id.settings_chord_recents_shift, R.id.settings_chord_recents_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, { it.chordRecents }
-            ),
-            Spec(
-                R.id.settings_chord_home_ctrl, R.id.settings_chord_home_alt,
-                R.id.settings_chord_home_shift, R.id.settings_chord_home_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_HOME, { it.chordHome }
-            ),
-            Spec(
-                R.id.settings_chord_back_ctrl, R.id.settings_chord_back_alt,
-                R.id.settings_chord_back_shift, R.id.settings_chord_back_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_BACK, { it.chordBack }
-            ),
-            Spec(
-                R.id.settings_chord_power_ctrl, R.id.settings_chord_power_alt,
-                R.id.settings_chord_power_shift, R.id.settings_chord_power_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_POWER, { it.chordPower }
-            ),
-            Spec(
-                R.id.settings_chord_volume_up_ctrl, R.id.settings_chord_volume_up_alt,
-                R.id.settings_chord_volume_up_shift, R.id.settings_chord_volume_up_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP, { it.chordVolumeUp }
-            ),
-            Spec(
-                R.id.settings_chord_volume_down_ctrl, R.id.settings_chord_volume_down_alt,
-                R.id.settings_chord_volume_down_shift, R.id.settings_chord_volume_down_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN, { it.chordVolumeDown }
-            ),
-            Spec(
-                R.id.settings_chord_rotate_ctrl, R.id.settings_chord_rotate_alt,
-                R.id.settings_chord_rotate_shift, R.id.settings_chord_rotate_key,
-                Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, { it.chordRotate }
-            ),
         )
     }
 }

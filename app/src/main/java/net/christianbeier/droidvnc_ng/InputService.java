@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.os.Build;
@@ -184,12 +185,12 @@ public class InputService extends AccessibilityService {
 	static boolean isInputEnabled;
 	/**
 	 * Active keyboard shortcut bindings (per-action chord assignments), rebuilt from prefs/defaults
-	 * in onServiceConnected() and live-updated from the settings UI via {@link #updateShortcuts}.
-	 * volatile: written on the main thread (onServiceConnected()/updateShortcuts()) and read on the
+	 * in onServiceConnected() and live-reloaded from the settings UI via {@link #reloadShortcuts}.
+	 * volatile: written on the main thread (onServiceConnected()/reloadShortcuts()) and read on the
 	 * VNC worker thread in onKeyEvent(). onServiceConnected() assigns it before publishing
 	 * {@code instance}, so it is non-null whenever onKeyEvent() observes a non-null instance.
 	 */
-	private volatile InputKeyShortcutManager mShortcuts;
+	private volatile InputKeyShortcut.Manager mShortcuts;
 
 	private TakeScreenshotCallback mTakeScreenShotCallback;
 	private static final int TAKE_SCREEN_SHOT_DELAY_MS_INITIAL = 100;
@@ -255,19 +256,14 @@ public class InputService extends AccessibilityService {
 	public void onServiceConnected()
 	{
 		super.onServiceConnected();
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		Defaults defaults = new Defaults(this);
 		// Build the shortcut bindings before publishing `instance`, so onKeyEvent() (VNC worker
 		// thread) never sees a non-null instance whose mShortcuts is not yet assigned.
-		mShortcuts = InputKeyShortcutManager.from(
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_RECENTS, new Defaults(this).getChordRecents()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_HOME, new Defaults(this).getChordHome()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_BACK, new Defaults(this).getChordBack()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_POWER, new Defaults(this).getChordPower()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_UP, new Defaults(this).getChordVolumeUp()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_VOLUME_DOWN, new Defaults(this).getChordVolumeDown()),
-				PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREFS_KEY_SETTINGS_CHORD_ROTATE, new Defaults(this).getChordRotate()));
+		mShortcuts = buildShortcuts(prefs, defaults);
 		instance = this;
-		isInputEnabled = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !new Defaults(this).getViewOnly());
-		scaling = PreferenceManager.getDefaultSharedPreferences(this).getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, new Defaults(this).getScaling());
+		isInputEnabled = prefs.getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !defaults.getViewOnly());
+		scaling = prefs.getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, defaults.getScaling());
 		mMainHandler = new Handler(instance.getMainLooper());
 		// (re-)add any InputContext's InputPointerViews
 		for (InputContext inputContext : inputContexts.values()) {
@@ -452,7 +448,7 @@ public class InputService extends AccessibilityService {
 	 * accessibility service / AudioManager / MediaProjectionService and reuse the same calls the
 	 * shortcuts used when they were hard-coded.
 	 */
-	private static void performShortcut(Action action) {
+	private static void performShortcut(InputKeyShortcut.Action action) {
 		// instance is a static mutated from other threads, so guard against it racing to null
 		// between here and the dereferences below rather than a pre-check that can go stale.
 		try {
@@ -482,25 +478,32 @@ public class InputService extends AccessibilityService {
 					break;
 			}
 		} catch (Exception e) {
-			// instance probably null
 			Log.e(TAG, "performShortcut: failed: " + e);
 		}
 	}
 
 	/**
-	 * Live-updates the running service's shortcut bindings from the settings UI. A no-op when the
-	 * service is not connected -- there is nothing to consult the bindings then, and
-	 * onServiceConnected() rebuilds them from prefs on the next connect.
+	 * Reads the per-action chord assignments -- each action's stored pref, falling back to its
+	 * built-in default -- into a fresh binding manager.
 	 */
-	static void updateShortcuts(String recents, String home, String back, String powerDialog,
-			String volumeUp, String volumeDown, String rotate) {
-		// instance can race to null between a check and the assignment, so let the deref throw
-		// instead; onServiceConnected() rebuilds mShortcuts from prefs on the next connect anyway.
+	private static InputKeyShortcut.Manager buildShortcuts(SharedPreferences prefs, Defaults defaults) {
+		return InputKeyShortcut.Manager.from(action ->
+				prefs.getString(action.getPrefKey(), action.defaultChord(defaults)));
+	}
+
+	/**
+	 * Live-reloads the running service's shortcut bindings from prefs, using the same read path as
+	 * onServiceConnected(). A no-op when the service is not connected -- there is nothing to consult
+	 * the bindings then, and onServiceConnected() rebuilds them from prefs on the next connect.
+	 */
+	static void reloadShortcuts() {
+		// instance can race to null between here and the dereferences, so snapshot it and let the
+		// deref throw rather than pre-checking; onServiceConnected() rebuilds from prefs anyway.
 		try {
-			instance.mShortcuts = InputKeyShortcutManager.from(recents, home, back, powerDialog, volumeUp, volumeDown, rotate);
+			InputService s = instance;
+			s.mShortcuts = buildShortcuts(PreferenceManager.getDefaultSharedPreferences(s), new Defaults(s));
 		} catch (Exception e) {
-			// instance probably null
-			Log.e(TAG, "updateShortcuts: failed: " + e);
+			Log.e(TAG, "reloadShortcuts: failed: " + e);
 		}
 	}
 
@@ -554,12 +557,12 @@ public class InputService extends AccessibilityService {
 
 			/*
 				Configurable keyboard shortcuts (issue #13): match the current modifier state and this
-				key against the chord the user assigned to each action (see InputKeyShortcutManager /
+				key against the chord the user assigned to each action (see InputKeyShortcut /
 				Settings). A match is consumed here -- it is not also injected below -- and the
 				heldShortcutTrigger latch debounces client key auto-repeat so a held chord fires once.
 			 */
 			if(down != 0) {
-				Action shortcut = instance.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
+				InputKeyShortcut.Action shortcut = instance.mShortcuts.actionFor(inputContext.isKeyCtrlDown, inputContext.isKeyAltDown, inputContext.isKeyShiftDown, keysym);
 				if(shortcut != null) {
 					if(inputContext.heldShortcutTrigger != keysym) {
 						inputContext.heldShortcutTrigger = keysym;
