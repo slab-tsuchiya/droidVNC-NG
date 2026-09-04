@@ -260,7 +260,8 @@ public class InputService extends AccessibilityService {
 		Defaults defaults = new Defaults(this);
 		// Build the shortcut bindings before publishing `instance`, so onKeyEvent() (VNC worker
 		// thread) never sees a non-null instance whose mShortcuts is not yet assigned.
-		mShortcuts = buildShortcuts(prefs, defaults);
+		mShortcuts = InputKeyShortcut.Manager.from(action ->
+				prefs.getString(action.getPrefKey(), action.defaultChord(defaults)));
 		instance = this;
 		isInputEnabled = prefs.getBoolean(Constants.PREFS_KEY_INPUT_LAST_ENABLED, !defaults.getViewOnly());
 		scaling = prefs.getFloat(Constants.PREFS_KEY_SERVER_LAST_SCALING, defaults.getScaling());
@@ -483,15 +484,6 @@ public class InputService extends AccessibilityService {
 	}
 
 	/**
-	 * Reads the per-action chord assignments -- each action's stored pref, falling back to its
-	 * built-in default -- into a fresh binding manager.
-	 */
-	private static InputKeyShortcut.Manager buildShortcuts(SharedPreferences prefs, Defaults defaults) {
-		return InputKeyShortcut.Manager.from(action ->
-				prefs.getString(action.getPrefKey(), action.defaultChord(defaults)));
-	}
-
-	/**
 	 * Live-reloads the running service's shortcut bindings from prefs, using the same read path as
 	 * onServiceConnected(). A no-op when the service is not connected -- there is nothing to consult
 	 * the bindings then, and onServiceConnected() rebuilds them from prefs on the next connect.
@@ -501,7 +493,10 @@ public class InputService extends AccessibilityService {
 		// deref throw rather than pre-checking; onServiceConnected() rebuilds from prefs anyway.
 		try {
 			InputService s = instance;
-			s.mShortcuts = buildShortcuts(PreferenceManager.getDefaultSharedPreferences(s), new Defaults(s));
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(s);
+			Defaults defaults = new Defaults(s);
+			s.mShortcuts = InputKeyShortcut.Manager.from(action ->
+					prefs.getString(action.getPrefKey(), action.defaultChord(defaults)));
 		} catch (Exception e) {
 			Log.e(TAG, "reloadShortcuts: failed: " + e);
 		}
