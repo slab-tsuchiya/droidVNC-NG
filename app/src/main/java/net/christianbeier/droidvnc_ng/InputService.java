@@ -544,15 +544,17 @@ public class InputService extends AccessibilityService {
 			if (keysym == 0xff9f) keysym = 0xffff; // KP_Delete    -> Delete
 
 			/*
-				Track Ctrl/Alt/Shift state for the configurable shortcut chords below.
+				Track Ctrl/Alt/Shift state for the configurable shortcut chords below. Both the left
+				and right variants count, matching what Chord.fromString accepts and app_restrictions
+				documents ("either side accepted").
 			 */
-			if(keysym == 0xFFE3)
+			if(keysym == 0xFFE3 || keysym == 0xFFE4) // Control_L / Control_R
 				inputContext.isKeyCtrlDown = down != 0;
 
-			if(keysym == 0xFFE9 || keysym == 0xFF7E) // MacOS clients send Alt as 0xFF7E
+			if(keysym == 0xFFE9 || keysym == 0xFFEA || keysym == 0xFF7E) // Alt_L / Alt_R (MacOS clients send Alt as 0xFF7E)
 				inputContext.isKeyAltDown = down != 0;
 
-			if(keysym == 0xFFE1)
+			if(keysym == 0xFFE1 || keysym == 0xFFE2) // Shift_L / Shift_R
 				inputContext.isKeyShiftDown = down != 0;
 
 			/*
